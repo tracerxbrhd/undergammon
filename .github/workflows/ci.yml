@@ -17,7 +17,7 @@ jobs:
       TEST_DATABASE_URL: postgresql://test:test@localhost:5432/undergammon_test
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 24 }
       - run: npm install --global pnpm@12.4.1
       - run: pnpm install --frozen-lockfile
