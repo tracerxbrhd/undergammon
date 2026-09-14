@@ -1,0 +1,30 @@
+name: Deploy production
+on:
+  workflow_dispatch:
+permissions: { contents: read }
+concurrency: { group: production, cancel-in-progress: false }
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy selected commit
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+        run: |
+          set -eu
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          test -n "$DEPLOY_PATH"
+          [[ "$DEPLOY_PATH" =~ ^/[a-zA-Z0-9/_-]+$ ]]
+          ssh "$VPS_USER@$VPS_HOST" "cd '$DEPLOY_PATH' && git fetch origin && git checkout --detach '$GITHUB_SHA' && docker compose build && docker compose up -d db && docker compose run --rm server node dist/migrate.js && docker compose up -d --wait && curl --fail https://undergammon.tracerxbrhd.ru/health"

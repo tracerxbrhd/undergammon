@@ -1,0 +1,12 @@
+services:
+  server:
+    environment:
+      NODE_ENV: development
+      PUBLIC_ORIGIN: http://localhost:8080
+  bot:
+    environment:
+      PUBLIC_ORIGIN: http://localhost:8080
+  web:
+    environment:
+      PUBLIC_HOST: http://localhost
+    ports: !override ['127.0.0.1:8080:80']

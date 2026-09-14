@@ -1,0 +1,72 @@
+name: undergammon
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: undergammon
+      POSTGRES_USER: undergammon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U undergammon -d undergammon']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  server:
+    build: { context: ., target: server }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://undergammon:${POSTGRES_PASSWORD}@db:5432/undergammon
+      PUBLIC_ORIGIN: https://undergammon.tracerxbrhd.ru
+      BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
+      BOT_USERNAME: ${BOT_USERNAME:?Set BOT_USERNAME}
+      ADMIN_TELEGRAM_IDS: ${ADMIN_TELEGRAM_IDS:-}
+      TURN_SECONDS: ${TURN_SECONDS:-60}
+      TELEGRAM_AUTH_MAX_AGE_SECONDS: ${TELEGRAM_AUTH_MAX_AGE_SECONDS:-300}
+      SESSION_HOURS: ${SESSION_HOURS:-24}
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+  bot:
+    build: { context: ., target: bot }
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
+      PUBLIC_ORIGIN: https://undergammon.tracerxbrhd.ru
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:?Set TELEGRAM_WEBHOOK_SECRET}
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+  web:
+    build: { context: ., target: web }
+    ports: ['80:80', '443:443', '443:443/udp']
+    volumes: ['caddy_data:/data', 'caddy_config:/config']
+    depends_on:
+      server: { condition: service_healthy }
+      bot: { condition: service_healthy }
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

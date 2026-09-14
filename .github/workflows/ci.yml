@@ -1,0 +1,32 @@
+name: Verify
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_call:
+permissions: { contents: read }
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env: { POSTGRES_USER: test, POSTGRES_PASSWORD: test, POSTGRES_DB: undergammon_test }
+        ports: ['5432:5432']
+        options: --health-cmd="pg_isready -U test" --health-interval=5s --health-retries=10
+    env:
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/undergammon_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: npm install --global pnpm@12.4.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test:ci
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - run: pnpm audit --prod --audit-level high
+      - run: docker compose --env-file .env.example config --quiet

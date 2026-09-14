@@ -1,0 +1,21 @@
+{$PUBLIC_HOST:undergammon.tracerxbrhd.ru} {
+ encode zstd gzip
+ header {
+  X-Content-Type-Options nosniff
+  Referrer-Policy no-referrer
+  Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Content-Security-Policy "default-src 'self'; script-src 'self' https://telegram.org; style-src 'self'; img-src 'self' data:; connect-src 'self' wss://undergammon.tracerxbrhd.ru; frame-ancestors https://web.telegram.org https://*.telegram.org"
+ }
+ handle /telegram/webhook {
+  reverse_proxy bot:3001
+ }
+ @backend path /api/* /ws /health
+ handle @backend {
+  reverse_proxy server:3000
+ }
+ handle {
+  root * /srv
+  try_files {path} /index.html
+  file_server
+ }
+}
