@@ -66,11 +66,11 @@ The visual system should use design tokens and reusable primitives, while the bo
 
 - grammY
 - TypeScript
-- initially a thin Telegram integration layer
+- intentionally thin Telegram integration layer
 
 Responsibilities include launch flows, challenge/invite delivery, transactional notifications and recovery deep links. Business rules remain in the server/domain layer.
 
-A single bot instance may use long polling initially because it keeps deployment simple. Webhooks can replace it later if horizontal scaling or operational requirements justify the change.
+For local development the bot may use long polling where convenient. Production uses the webhook route documented in `docs/architecture/22-hosting-and-deployment.md` (`/telegram/webhook`) so deployment behavior is explicit and stable.
 
 ## Server
 
@@ -158,7 +158,7 @@ Expected repository artifacts include:
 
 Application images should use a supported Node 24 LTS base and multi-stage builds so development dependencies do not ship in runtime images.
 
-Secrets such as the Telegram bot token, database credentials and administrator allowlist are injected at runtime and never baked into images or committed to Git.
+Runtime configuration is injected at deployment time and must not be baked into images or committed to Git.
 
 Caddy is the initial edge/reverse-proxy choice because it gives a compact HTTPS/static/reverse-proxy setup suitable for a single Docker host. This does not become a domain dependency and may be replaced later without changing application architecture.
 

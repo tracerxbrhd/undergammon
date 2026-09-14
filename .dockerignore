@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+.pnpm-store
+coverage
+*.log
+.env
+.env.*
+!.env.example
+backups
+*.sql
+*.sql.gz
+*.dump
