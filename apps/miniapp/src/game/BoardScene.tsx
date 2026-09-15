@@ -80,13 +80,12 @@ export function BoardScene({
 }) {
   const opponent: PlayerId = seat === 'A' ? 'B' : 'A';
   const points = resolveBoardPointPresentation(game, board, seat);
-  const boardClasses = [
-    'board-scene',
-    cosmetics.board.localTheme.presentation.className,
-    cosmetics.board.opponentTheme.presentation.className,
-  ].join(' ');
   return (
-    <div className={boardClasses}>
+    <div
+      className="board-scene"
+      data-local-board-theme={cosmetics.board.localTheme.presentation.id}
+      data-opponent-board-theme={cosmetics.board.opponentTheme.presentation.id}
+    >
       <div className="board" aria-label={boardLabel}>
         {points.map(({ index, physical, point, owner, amount }, position) => {
           const source = next.some((move) => move.from === point);
