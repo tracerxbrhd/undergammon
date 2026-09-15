@@ -8,6 +8,7 @@ import { MatchService } from '../src/matches.js';
 import { buildServer } from '../src/app.js';
 import { signedInitData } from './helpers.js';
 import type { Command, MatchSnapshot } from '@undergammon/protocol';
+import { grantSeason0TesterFrame } from '../src/cosmetics.js';
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('PostgreSQL integration', () => {
   const pool = createPool(url ?? 'postgresql://unused');
@@ -156,6 +157,45 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
     expect(ownership.map((row) => row.account_id).sort()).toEqual([user(0), user(1)].sort());
     expect(ownership.every((row) => row.source_reference === s.id)).toBe(true);
     expect(await rows(pool, 'SELECT * FROM cosmetic_equipment')).toHaveLength(2);
+  });
+  it('does not re-equip an already-owned frame after it is intentionally unequipped', async () => {
+    const firstGrant = await transaction(pool, (db) =>
+      grantSeason0TesterFrame(db, user(0), randomUUID()),
+    );
+    expect(firstGrant).toBe(true);
+    expect(
+      await rows(pool, 'SELECT * FROM cosmetic_equipment WHERE account_id=$1', [user(0)]),
+    ).toHaveLength(1);
+
+    await pool.query(
+      "DELETE FROM cosmetic_equipment WHERE account_id=$1 AND slot='PROFILE_FRAME'",
+      [user(0)],
+    );
+    const repeatedGrant = await transaction(pool, (db) =>
+      grantSeason0TesterFrame(db, user(0), randomUUID()),
+    );
+
+    expect(repeatedGrant).toBe(false);
+    expect(
+      await rows(pool, 'SELECT * FROM cosmetic_ownership WHERE account_id=$1', [user(0)]),
+    ).toHaveLength(1);
+    expect(
+      await rows(pool, 'SELECT * FROM cosmetic_equipment WHERE account_id=$1', [user(0)]),
+    ).toHaveLength(0);
+  });
+  it('captures trusted equipped cosmetics in each newly created match snapshot', async () => {
+    const qualifying = await make();
+    await transaction(pool, async (db) => {
+      await service.finish(db, qualifying, 'A', 'BEAR_OFF');
+      await service.save(db, qualifying, 'FINISHED');
+    });
+
+    const subsequent = await transaction(pool, (db) =>
+      service.create(db, user(0), user(2), 'LONG_NARDY', 'CASUAL'),
+    );
+    expect(subsequent.players.A.cosmetics?.profileFrame).toBe('season0_tester_frame');
+    expect(subsequent.players.B.cosmetics?.profileFrame).toBe('default');
+    expect(qualifying.players.A.cosmetics?.profileFrame).toBe('default');
   });
   it('preserves existing equipment and stops runtime grants after Season 0', async () => {
     await pool.query(

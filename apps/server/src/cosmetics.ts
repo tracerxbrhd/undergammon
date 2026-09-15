@@ -24,10 +24,12 @@ export async function equippedCosmetics(
 export async function grantSeason0TesterFrame(db: Db, accountId: string, matchId: string) {
   const active = await rows(db, 'SELECT 1 FROM seasons WHERE id=0 AND ended_at IS NULL');
   if (!active.length) return false;
-  await db.query(
-    "INSERT INTO cosmetic_ownership(account_id,slot,cosmetic_id,source,source_reference) VALUES($1,$2,$3,'SEASON_0_PARTICIPATION',$4) ON CONFLICT DO NOTHING",
+  const granted = await rows<{ cosmetic_id: string }>(
+    db,
+    "INSERT INTO cosmetic_ownership(account_id,slot,cosmetic_id,source,source_reference) VALUES($1,$2,$3,'SEASON_0_PARTICIPATION',$4) ON CONFLICT DO NOTHING RETURNING cosmetic_id",
     [accountId, SLOT, TESTER_FRAME, matchId],
   );
+  if (!granted.length) return false;
   await db.query(
     'INSERT INTO cosmetic_equipment(account_id,slot,cosmetic_id) VALUES($1,$2,$3) ON CONFLICT(account_id,slot) DO NOTHING',
     [accountId, SLOT, TESTER_FRAME],
