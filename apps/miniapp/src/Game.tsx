@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   matchingTurns,
   previewGame,
-  physicalPoint,
   type Move,
   type BoardState,
   type BackgammonBoardState,
@@ -12,9 +11,8 @@ import { connectMatch } from './realtime';
 import { copy, rules, avatarEmoji, message, type Language } from './content';
 import { api, platform, feedbackSound } from './platform';
 import { BottomSheet, ProgressBar } from './ui';
-function hasBar(board: BoardState): board is BackgammonBoardState {
-  return 'bar' in board;
-}
+import { BoardScene } from './game/BoardScene';
+import { resolveMatchCosmetics } from './game/cosmetics';
 export function Game({
   matchId,
   accountId,
@@ -130,6 +128,7 @@ export function Game({
     );
   const seat = s.players.A.accountId === accountId ? 'A' : 'B';
   const opponent = seat === 'A' ? 'B' : 'A';
+  const cosmetics = resolveMatchCosmetics({ localSeat: seat });
   const yourTurn =
     s.game.activePlayer === seat &&
     s.status === 'ACTIVE' &&
@@ -157,20 +156,10 @@ export function Game({
       feedbackSound('move');
     } else if (next.some((m) => m.from === point)) setSelected(point);
   };
-  const relative = (physical: number) => {
-    for (let point = 0; point < 24; point++)
-      if (physicalPoint(s.game, seat, point) === physical) return point;
-    return 0;
-  };
-  const viewPhysical = (index: number) => physicalPoint(s.game, seat, index);
-  const displayOrder = [
-    ...Array.from({ length: 12 }, (_, i) => 11 - i),
-    ...Array.from({ length: 12 }, (_, i) => 12 + i),
-  ];
   return (
     <section className="game game-screen">
       <div
-        className={`player player-strip glass glass-regular ${s.game.activePlayer === opponent ? 'active-player' : ''}`}
+        className={`player player-strip glass glass-regular ${cosmetics.profile.opponentFrame.presentation.className} ${s.game.activePlayer === opponent ? 'active-player' : ''}`}
       >
         <span className="avatar">{avatarEmoji[s.players[opponent].avatar]}</span>
         <div>
@@ -198,78 +187,23 @@ export function Game({
           •••
         </button>
       </div>
-      <div className="board-scene">
-        <div className="board" aria-label={s.ruleset === 'LONG_NARDY' ? t.long : t.short}>
-          {displayOrder.map((index, i) => {
-            const physical = viewPhysical(index);
-            const ownPoint = relative(physical);
-            let owner = seat;
-            let amount = board[seat][ownPoint] ?? 0;
-            if (!amount) {
-              owner = opponent;
-              for (let p = 0; p < 24; p++)
-                if (physicalPoint(s.game, opponent, p) === physical)
-                  amount = board[opponent][p] ?? 0;
-            }
-            const source = next.some((m) => m.from === ownPoint);
-            const destination = next.some((m) => m.from === selected && m.to === ownPoint);
-            return (
-              <button
-                key={index}
-                className={`point ${i < 12 ? 'top' : 'bottom'} ${i % 2 ? 'dark' : 'light'} ${source ? 'source' : ''} ${destination ? 'destination' : ''} ${selected === ownPoint ? 'selected' : ''} ${recent && ((recent.move.to < 24 && physicalPoint(s.game, recent.player, recent.move.to) === physical) || (typeof recent.move.from === 'number' && physicalPoint(s.game, recent.player, recent.move.from) === physical)) ? 'recent' : ''}`}
-                onClick={() => select(ownPoint)}
-                disabled={!canDraft || (!source && !destination)}
-                aria-label={`${ownPoint + 1}: ${amount}`}
-              >
-                <span className="point-number">{ownPoint + 1}</span>
-                <span className="stack">
-                  {Array.from({ length: Math.min(amount, 5) }, (_, n) => (
-                    <span key={n} className={`checker ${owner === seat ? 'own' : 'enemy'}`}>
-                      {n === 4 && amount > 5 ? amount : ''}
-                    </span>
-                  ))}
-                </span>
-                {destination && <span className="target">●</span>}
-              </button>
-            );
-          })}
-        </div>
-        <div className="board-trays">
-          <div className="off-tray">{board[opponent][24]}</div>
-          {hasBar(board) ? (
-            <button
-              disabled={!next.some((m) => m.from === 'BAR')}
-              className={selected === 'BAR' ? 'active' : ''}
-              onClick={() => select('BAR')}
-            >
-              {t.bar} {board.bar[seat]}
-            </button>
-          ) : (
-            <span className="structural-bar" aria-hidden="true" />
-          )}
-          <div className="dice">
-            {s.game.diceRoll?.map((die, i) => (
-              <Die key={i} value={die} used={draft.some((move) => move.die === die)} />
-            ))}
-            {s.game.diceRoll?.[0] === s.game.diceRoll?.[1] && (
-              <span className="double-marks">
-                {[0, 1, 2, 3].map((i) => (
-                  <i className={draft.length > i ? 'used' : ''} key={i} />
-                ))}
-              </span>
-            )}
-          </div>
-          <button
-            className={next.some((m) => m.from === selected && m.to === 24) ? 'active' : ''}
-            onClick={() => select(24)}
-            disabled={!next.some((m) => m.from === selected && m.to === 24)}
-          >
-            {t.off} {board[seat][24]}/15
-          </button>
-        </div>
-      </div>
+      <BoardScene
+        game={s.game}
+        board={board}
+        seat={seat}
+        next={next}
+        selected={selected}
+        recent={recent}
+        draft={draft}
+        canDraft={canDraft}
+        cosmetics={cosmetics}
+        boardLabel={s.ruleset === 'LONG_NARDY' ? t.long : t.short}
+        barLabel={t.bar}
+        offLabel={t.off}
+        onSelect={select}
+      />
       <div
-        className={`player player-strip glass glass-regular ${s.game.activePlayer === seat ? 'active-player' : ''}`}
+        className={`player player-strip glass glass-regular ${cosmetics.profile.localFrame.presentation.className} ${s.game.activePlayer === seat ? 'active-player' : ''}`}
       >
         <span className="avatar">{avatarEmoji[s.players[seat].avatar]}</span>
         <div>
@@ -336,7 +270,9 @@ export function Game({
             </button>
           )}
           {reactions && (
-            <div className="reaction-picker glass glass-strong">
+            <div
+              className={`reaction-picker glass glass-strong ${cosmetics.reactions.localPack.presentation.className}`}
+            >
               {(['WAVE', 'NICE', 'GG'] as const).map((r, i) => (
                 <button
                   key={r}
@@ -433,22 +369,5 @@ export function Game({
         </button>
       )}
     </section>
-  );
-}
-function Die({ value, used }: { value: number; used: boolean }) {
-  const pips: Record<number, number[]> = {
-    1: [4],
-    2: [0, 8],
-    3: [0, 4, 8],
-    4: [0, 2, 6, 8],
-    5: [0, 2, 4, 6, 8],
-    6: [0, 2, 3, 5, 6, 8],
-  };
-  return (
-    <span className={`die ${used ? 'consumed' : ''}`} aria-label={`Die ${value}`}>
-      {Array.from({ length: 9 }, (_, i) => (
-        <i className={pips[value]?.includes(i) ? 'pip' : ''} key={i} />
-      ))}
-    </span>
   );
 }
