@@ -63,7 +63,7 @@ test('app shell follows Telegram content safe-area changes', async ({ browser })
   await page.goto('/');
   const header = page.locator('.app-shell > header');
   await expect(header).toBeVisible();
-  await expect.poll(async () => (await header.boundingBox())?.y).toBe(52);
+  await expect.poll(async () => (await header.boundingBox())?.y).toBe(88);
 
   await page.evaluate(() => {
     const webApp = (
@@ -76,10 +76,10 @@ test('app shell follows Telegram content safe-area changes', async ({ browser })
         };
       }
     ).Telegram.WebApp;
-    webApp.contentSafeAreaInset.top = 52;
+    webApp.contentSafeAreaInset.top = 96;
     webApp.emit('contentSafeAreaChanged');
   });
-  await expect.poll(async () => (await header.boundingBox())?.y).toBe(68);
+  await expect.poll(async () => (await header.boundingBox())?.y).toBe(112);
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
   await page.screenshot({ path: 'test-results/app-shell-safe-area.png', fullPage: true });
   await context.close();
@@ -113,7 +113,7 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
     await expect.poll(async () => (await gameScreen.boundingBox())?.height).toBe(760);
     await expect
       .poll(async () => (await gameScreen.locator('.player-strip').first().boundingBox())?.y)
-      .toBe(128);
+      .toBe(164);
     await expect.poll(async () => (await gameScreen.boundingBox())?.y).toBe(84);
     await expect
       .poll(async () => {
