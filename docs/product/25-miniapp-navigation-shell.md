@@ -1,6 +1,6 @@
 # 25 — Mini App Navigation Shell
 
-Status: accepted UX/UI v2 decision, implementation pending
+Status: accepted UX/UI v2 decision; five-destination shell implemented in Update 1.
 
 ## Purpose
 
@@ -12,22 +12,24 @@ It complements:
 - `21-miniapp-ux-ui-v2.md` for the accepted Mini App v2 information architecture;
 - `19-season-0-release-scope.md` for release scope.
 
-The goal is to keep current navigation compact while avoiding a future structural rewrite when another major product destination such as Store is introduced.
+The shell was intentionally designed to expand without a structural rewrite. Update 1 used that capacity for Store and Cosmetics.
 
 ## Primary navigation model
 
-The current primary destinations remain:
+The current implemented primary destinations are, left to right:
 
-- Rankings;
+- Store;
+- Cosmetics;
 - Play;
+- Rankings;
 - Profile.
 
-`Play` is the product's primary destination and occupies the central navigation position.
+`Play` remains the product's primary destination and occupies the central navigation position.
 
 Conceptually:
 
 ```text
-[ Rankings ]    [ PLAY ]    [ Profile ]
+[ Store ] [ Cosmetics ] [ PLAY ] [ Rankings ] [ Profile ]
 ```
 
 The navigation is icon-led rather than text-button-led.
@@ -50,7 +52,7 @@ The visual emphasis must not change the actual touch-target requirements: all na
 
 ## Expandable shell
 
-The shell must support future primary destinations without rewriting the application layout.
+The shell supports up to five primary destinations on normal phone widths without rewriting the application layout.
 
 Conceptually, the navigation component owns:
 
@@ -60,25 +62,15 @@ primaryItem = Play
 trailingItems[]
 ```
 
-with a practical capacity of up to five primary destinations on normal phone widths.
-
 Current configuration:
 
 ```text
-leadingItems  = [Rankings]
+leadingItems  = [Store, Cosmetics]
 primaryItem   = Play
-trailingItems = [Profile]
+trailingItems = [Rankings, Profile]
 ```
 
-A future configuration may become, for example:
-
-```text
-leadingItems  = [Rankings, Store]
-primaryItem   = Play
-trailingItems = [Social, Profile]
-```
-
-The exact future destinations are not accepted product scope yet; this is only a structural capability.
+Further primary destinations should not be added merely because the shell is structurally capable of more. The current five slots are occupied and any future change must be an explicit product/navigation decision.
 
 ## No empty placeholder buttons
 
@@ -131,13 +123,13 @@ Recommended state hierarchy:
 - unselected item: quieter neutral state;
 - disabled primary-nav items are generally avoided because unusable destinations should not be exposed in the first place.
 
-Do not use emoji as production navigation icons.
+Do not use emoji or generic Unicode symbols as the final production navigation icon system.
 
-Use a consistent vector/icon source or application-owned icon components so stroke weight, optical size and alignment remain coherent.
+The current implementation still uses simple Unicode glyphs as a presentation shortcut. Replacing them with a coherent application-owned/vector icon set is visual technical debt, not a reason to change the five-tab information architecture.
 
 ## Architecture direction
 
-The shell/navigation structure should be configuration-driven rather than hard-coded separately into each page.
+The shell/navigation structure is configuration-driven rather than hard-coded separately into each page.
 
 Conceptually:
 
@@ -156,10 +148,10 @@ interface PrimaryNavModel {
 }
 ```
 
-Exact TypeScript names are implementation details. The important contract is that adding a future accepted primary destination should normally be a navigation configuration/layout change, not an AppShell rewrite.
+Exact TypeScript names are implementation details. The important contract is that an accepted navigation change should normally be a configuration/layout change, not an AppShell rewrite.
 
 ## Scope guard
 
-This extensibility does not mean Store, Social, Events or other speculative tabs should be implemented or shown during UX/UI v2 unless their product scope is separately accepted.
+Store and Cosmetics are no longer speculative placeholders: both are implemented primary destinations in Update 1.
 
-The shell is future-ready; the current navigation remains intentionally small.
+Social, Events and other speculative destinations remain outside current Season 0 navigation unless separately accepted and implemented.
