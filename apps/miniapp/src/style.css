@@ -678,7 +678,7 @@ pre {
 .game-screen {
   position: fixed;
   z-index: 50;
-  inset: 0;
+  inset: auto 0 0;
   width: 100%;
   height: var(--app-viewport-stable-height);
   padding: calc(8px + var(--app-content-safe-top))
