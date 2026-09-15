@@ -35,13 +35,14 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
     await telegram(b, seed + 1);
     const pa = await a.newPage(),
       pb = await b.newPage();
+    const primaryFind = (page: typeof pa) => page.locator('button.primary', { hasText: 'Find a player' });
     await Promise.all([pa.goto('/'), pb.goto('/')]);
-    await expect(pa.getByRole('button', { name: 'Find a player' })).toBeVisible();
+    await expect(primaryFind(pa)).toBeVisible();
     const rulesetName = ruleset === 'LONG_NARDY' ? 'Long Nardy' : 'Backgammon';
     await pa.getByRole('button', { name: rulesetName, exact: true }).click();
     await pb.getByRole('button', { name: rulesetName, exact: true }).click();
-    await pa.getByRole('button', { name: 'Find a player' }).click();
-    await pb.getByRole('button', { name: 'Find a player' }).click();
+    await primaryFind(pa).click();
+    await primaryFind(pb).click();
     await expect(pa.locator('.board')).toBeVisible({ timeout: 15000 });
     await expect(pb.locator('.board')).toBeVisible({ timeout: 15000 });
     await expect(pa.locator('body')).toHaveJSProperty('scrollWidth', 390);
