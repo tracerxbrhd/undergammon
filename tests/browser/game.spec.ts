@@ -175,6 +175,71 @@ test('daily reward revalidates stale claims and countdown expiry with the server
   await expect(page.getByRole('button', { name: /Today's reward claimed/ })).toBeDisabled();
   await context.close();
 });
+test('player buys, equips, and removes a permanent profile frame', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await telegram(context, 900000001);
+  const page = await context.newPage();
+  await page.goto('/');
+  await expect(page.locator('button.primary', { hasText: 'Find a player' })).toBeVisible();
+  const me = await page.evaluate(async () => {
+    const response = await fetch('/api/me');
+    if (!response.ok)
+      throw new Error(`Could not load /api/me: ${response.status} ${await response.text()}`);
+    return (await response.json()) as { id: string };
+  });
+  expect(me.id).toBeTruthy();
+  await page.evaluate(async (accountId) => {
+    const response = await fetch('/api/admin/adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operationId: crypto.randomUUID(),
+        target: accountId,
+        action: 'COINS',
+        reason: 'Cosmetics E2E seed',
+        value: 200,
+      }),
+    });
+    if (!response.ok)
+      throw new Error(`Could not seed Coins: ${response.status} ${await response.text()}`);
+  }, me.id);
+  await page.reload();
+
+  const navigation = page.getByRole('navigation', { name: 'Primary' });
+  await expect(navigation.getByRole('button')).toHaveText([
+    '□Store',
+    '◇Cosmetics',
+    '●Play',
+    '◆Rankings',
+    '◉Profile',
+  ]);
+  await navigation.getByRole('button', { name: /Store/ }).click();
+  await expect(page.getByRole('heading', { name: 'Store' })).toBeVisible();
+  await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  const storeBalance = page.locator('.commerce-title > strong');
+  await expect(storeBalance).toHaveText('200 Coins');
+  await expect(page.getByText('150 Coins', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Buy' }).click();
+  await expect(page.getByRole('button', { name: 'Owned' })).toBeDisabled();
+  await expect(storeBalance).toHaveText('50 Coins');
+
+  await navigation.getByRole('button', { name: /Cosmetics/ }).click();
+  const bronzeFrame = page.locator('.cosmetic-card', { hasText: 'Bronze Frame' });
+  await expect(bronzeFrame).toBeVisible();
+  await bronzeFrame.getByRole('button', { name: 'Equip', exact: true }).click();
+  const equippedBronze = bronzeFrame.getByRole('button', { name: 'Equipped', exact: true });
+  await expect(equippedBronze).toBeDisabled();
+  await navigation.getByRole('button', { name: /Profile/ }).click();
+  await expect(page.locator('.profile-avatar')).toHaveClass(/profile-frame-bronze/);
+
+  await navigation.getByRole('button', { name: /Cosmetics/ }).click();
+  const defaultFrame = page.locator('.cosmetic-card', { hasText: 'Default' });
+  await defaultFrame.getByRole('button', { name: 'Equip', exact: true }).click();
+  await navigation.getByRole('button', { name: /Profile/ }).click();
+  await expect(page.locator('.profile-avatar')).not.toHaveClass(/profile-frame-bronze/);
+  await page.screenshot({ path: 'test-results/cosmetics-profile-default.png', fullPage: true });
+  await context.close();
+});
 for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
   test(`two authenticated players play and reconnect in a shorter stable viewport: ${ruleset}`, async ({
     browser,

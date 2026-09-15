@@ -8,6 +8,7 @@ import type pg from 'pg';
 import type { WebSocket } from 'ws';
 import {
   commandSchema,
+  cosmeticSlotSchema,
   rulesetSchema,
   type ServerEvent,
   type MatchSnapshot,
@@ -26,7 +27,13 @@ import { rows, transaction } from './db.js';
 import { MatchService } from './matches.js';
 import { avatars, validateNickname, levelFromXp, levelProgressFromXp } from './policy.js';
 import type { Config } from './config.js';
-import { equippedCosmetics } from './cosmetics.js';
+import {
+  cosmeticsInventory,
+  equipCosmetic,
+  equippedCosmetics,
+  purchaseCosmetic,
+  storeProducts,
+} from './cosmetics.js';
 import { claimDailyReward, dailyRewardStatus } from './daily-rewards.js';
 const uuid = z.uuid();
 export async function buildServer(pool: pg.Pool, config: Config) {
@@ -129,6 +136,24 @@ export async function buildServer(pool: pg.Pool, config: Config) {
     },
   );
   app.get('/api/me', async (req) => profile(pool, await identity(req), config));
+  app.get('/api/cosmetics', async (req) => cosmeticsInventory(pool, await identity(req)));
+  app.put('/api/cosmetics/equipment', async (req) => {
+    const accountId = await identity(req);
+    const body = z
+      .object({ slot: cosmeticSlotSchema, cosmeticId: z.string().min(1).max(80) })
+      .strict()
+      .parse(req.body);
+    return equipCosmetic(pool, accountId, body.slot, body.cosmeticId);
+  });
+  app.get('/api/store', async (req) => storeProducts(pool, await identity(req)));
+  app.post('/api/store/purchase', async (req) => {
+    const accountId = await identity(req);
+    const body = z
+      .object({ cosmeticId: z.string().min(1).max(80) })
+      .strict()
+      .parse(req.body);
+    return purchaseCosmetic(pool, accountId, body.cosmeticId);
+  });
   app.get('/api/daily-reward', async (req) => dailyRewardStatus(pool, await identity(req)));
   app.post('/api/daily-reward/claim', async (req) => {
     const accountId = await identity(req);

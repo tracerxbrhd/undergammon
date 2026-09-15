@@ -48,4 +48,17 @@ describe('resolveMatchCosmetics', () => {
     expect(result.profile.localFrame.presentation.id).toBe('default');
     expect(result.profile.opponentFrame.presentation.id).toBe('default');
   });
+
+  it('maps the purchasable frame through an application-controlled presentation', () => {
+    const result = resolveMatchCosmetics({
+      localSeat: 'A',
+      players: {
+        A: { cosmetics: { profileFrame: 'bronze_profile_frame' } },
+      },
+    });
+    expect(result.profile.localFrame.presentation).toEqual({
+      id: 'bronze_profile_frame',
+      className: 'profile-frame-bronze',
+    });
+  });
 });

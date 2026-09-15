@@ -55,6 +55,10 @@ const profileFrames: Record<ProfileFrameId, ProfileFramePresentation> = {
     id: 'season0_tester_frame',
     className: 'profile-frame-season0-tester',
   },
+  bronze_profile_frame: {
+    id: 'bronze_profile_frame',
+    className: 'profile-frame-bronze',
+  },
 };
 
 export function resolveProfileFrame(id: ProfileFrameId): ProfileFramePresentation {
