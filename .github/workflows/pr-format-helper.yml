@@ -5,30 +5,27 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
       - run: npm install --global pnpm@12.4.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm format
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr-1-5-formatted
-          path: |
-            apps/miniapp/src/Cosmetics.tsx
-            apps/miniapp/src/Game.tsx
-            apps/miniapp/src/PublicProfile.tsx
-            apps/miniapp/src/Store.tsx
-            apps/miniapp/src/app/navigation.tsx
-            apps/miniapp/src/main.tsx
-            apps/miniapp/src/styles/polish.css
-            apps/miniapp/src/ui/ProfileFramePreview.tsx
-            apps/miniapp/src/ui/icons.tsx
-            tests/browser/game.spec.ts
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/miniapp/src tests/browser/game.spec.ts
+          if ! git diff --cached --quiet; then
+            git commit -m "style(miniapp): format PR 1.5 changes"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
