@@ -103,6 +103,34 @@ RECONNECTING / CONTROL_LOST
 
 `Roll Dice` and `Confirm Turn` should reuse the same dominant primary-action region where practical so the dock does not jump between phases.
 
+## Local-turn action behavior
+
+The local-turn controls use persistent positions after the dice result is available.
+
+Accepted behavior:
+
+```text
+BEFORE_ROLL
+[ Reaction ] [              Roll Dice              ]
+
+AFTER_ROLL, EMPTY/PARTIAL DRAFT
+[ Reaction ] [ Undo ] [ Confirm Turn — disabled ]
+
+AFTER_ROLL, COMPLETE LEGAL DRAFT
+[ Reaction ] [ Undo ] [ Confirm Turn — active   ]
+```
+
+Rules:
+
+- `Confirm Turn` becomes visible immediately after the authoritative dice result is presented;
+- `Confirm Turn` stays disabled until the local draft represents a complete legal turn according to the existing game engine;
+- `Undo` occupies its stable position after the roll and stays disabled while there is no draft move to undo;
+- the controls must not appear/disappear in a way that resizes the dock or moves the Board Scene;
+- disabled controls must remain visually distinguishable without becoming misleadingly prominent;
+- enabling a control is presentation of an already-derived legal state, never client authority over legality.
+
+This gives the player a stable action model while preserving the existing explicit draft/undo/confirm interaction contract.
+
 ## Reactions and match menu
 
 Reactions use one compact trigger rather than multiple permanently visible reaction buttons.
