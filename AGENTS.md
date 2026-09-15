@@ -13,15 +13,7 @@ Those documents are the project source of truth. If accepted documents appear to
 
 Keep this file short. Detailed decisions belong in `docs/`.
 
-## Current Mini App v2 implementation brief
-
-When the current task explicitly asks to implement or continue the accepted Telegram Mini App UX/UI v2, read and follow:
-
-- `docs/codex/miniapp-v2-one-pass-implementation.md`
-
-Treat that file as the execution brief for the implementation pass and read the referenced `docs/product/21–37` documents before editing. Do not stop after planning when the task asks for the one-pass implementation; carry the implementation through the applicable checks and provide the requested final engineering report.
-
-This section is task-specific. Do not apply the Mini App v2 implementation brief to unrelated repository work unless the user explicitly asks for that work.
+Historical implementation briefs are kept under `docs/archive/` for provenance only. Do not treat archived briefs as current implementation instructions.
 
 ## Legacy reference
 

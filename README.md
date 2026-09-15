@@ -1,188 +1,111 @@
+![UNDERGAMMON](docs/assets/branding/ug-welcome.png)
+
 # UNDERGAMMON
 
-Telegram-first online Long Nardy and Classic Backgammon. Season 0 is a persistent
-Open Beta. Production is live at `https://undergammon.tracerxbrhd.ru` and the
-Telegram entry point is `@UndergammonBot`. This is public-source **proprietary
-software**, not open source; see [LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
+**Telegram-first online Long Nardy and Classic Backgammon with server-authoritative realtime multiplayer.**
 
-Approved decisions remain in [docs/product](docs/product) and
-[docs/architecture](docs/architecture). Read [AGENTS.md](AGENTS.md) before changing
-behavior. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for the current
-Season 0 implementation, verification baseline, technical debt and accepted deferrals.
+Season 0 is a persistent Open Beta. The game is live in production and playable through Telegram.
 
-## Local development
+[Open in Telegram](https://t.me/UndergammonBot) · [Production](https://undergammon.tracerxbrhd.ru) · [Documentation](docs/README.md)
 
-Requirements: Node 24, pnpm 12.4.1, Docker with Compose 2.24.4 or newer.
+[![Verify](https://github.com/tracerxbrhd/undergammon/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tracerxbrhd/undergammon/actions/workflows/ci.yml)
+![Season 0](https://img.shields.io/badge/Season%200-Open%20Beta-6f5cff)
+![License](https://img.shields.io/badge/license-proprietary-lightgrey)
+
+## About
+
+UNDERGAMMON is an online backgammon project built around Telegram. The Telegram Bot is the entry point for launching the game, invites and notifications; the Telegram Mini App is the primary game client; the backend owns accounts, matchmaking, realtime sessions and authoritative gameplay.
+
+The project currently focuses on delivering a reliable Telegram game rather than a general-purpose gaming platform. Long Nardy and Classic Backgammon rules live in a deterministic shared game engine, while dice, move validation, match state, results, progression and economy remain authoritative on the server.
+
+## What works today
+
+The current production build includes:
+
+- Telegram `initData` authentication and internal Game Accounts;
+- Long Nardy and Classic Backgammon PvP;
+- server-authoritative dice, move validation, match state and results;
+- casual matchmaking and private challenge/invite flows;
+- realtime gameplay with reconnect and restart recovery;
+- profiles, Season 0 ratings, leaderboards, XP/level and match history;
+- earned Coins, ranked rewards and a 7-day Daily Reward;
+- permanent cosmetic ownership and equipment;
+- Season 0 Tester and Bronze Profile Frames;
+- Store -> purchase -> Cosmetics -> equip -> Profile presentation flow;
+- RU/EN player-facing flows;
+- Docker Compose production deployment with PostgreSQL persistence and Caddy/HTTPS.
+
+For the exact implementation snapshot, known technical debt and accepted deferrals, see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    TG[Telegram] --> BOT[Bot]
+    TG --> APP[Mini App]
+    APP -->|HTTPS / WebSocket| SERVER[Authoritative Server]
+    BOT --> SERVER
+    SERVER --> DB[(PostgreSQL)]
+    SERVER --> ENGINE[Game Engine]
+```
+
+Primary stack: **TypeScript · React · Node.js · Fastify · WebSocket · PostgreSQL · Docker Compose**.
+
+The current production topology is intentionally simple: one VPS, one backend/realtime process and PostgreSQL. Redis, queues, microservices and multi-replica realtime are not part of the current architecture.
+
+## Repository structure
+
+```text
+apps/
+  bot/          Telegram Bot
+  miniapp/      Telegram Mini App client
+  server/       HTTP, realtime and authoritative application backend
+
+packages/
+  game-engine/  deterministic Long Nardy / Backgammon rules
+  protocol/     shared validated application and realtime contracts
+
+docs/           product, architecture and engineering documentation
+infra/          production infrastructure configuration
+tests/          repository-level browser tests
+```
+
+The frozen `tracerxbrhd/backgammon` repository is legacy/reference material only. UNDERGAMMON does not inherit its repository architecture.
+
+## Development
+
+Requirements: Node 24, pnpm 12.4.1 and Docker Compose 2.24.4 or newer.
 
 ```sh
 npm install --global pnpm@12.4.1
 pnpm install --frozen-lockfile
-docker compose -f compose.test.yaml up -d --wait
-cp .env.example .env
-# Set BOT_TOKEN, BOT_USERNAME and other values in .env.
 pnpm build
-node --env-file=.env apps/server/dist/index.js
-# In a separate terminal:
-pnpm --filter @undergammon/miniapp dev
+pnpm test
 ```
 
-Open `http://localhost:5173`. Normal browser visits show the Telegram landing page.
-There is no development authentication bypass. Actual Telegram launch requires a
-Telegram-accessible HTTPS origin and a real bot; automated browser tests instead
-sign synthetic launch data with a test-only token against the real authentication
-implementation. The test harness never ships as an authentication route.
+Local Telegram authentication deliberately has no development bypass. Full setup, isolated PostgreSQL test database instructions, browser testing and verification commands are documented in [docs/development/README.md](docs/development/README.md).
 
-A Docker-only local smoke stack is also available:
+Production deployment, webhook setup, migrations and backup/restore procedures are documented separately in [docs/operations/README.md](docs/operations/README.md).
 
-```sh
-docker compose --env-file .env -f compose.yaml -f compose.dev.yaml up -d --build --wait
-# Landing page/API health: http://localhost:8080
-```
+## Documentation
 
-The dev override binds the web port to loopback and turns off HTTPS cookies for
-local HTTP. Never use `compose.dev.yaml` in production. The disposable test DB is
-separate from the production database and binds only `127.0.0.1:55432`.
+Start with [docs/README.md](docs/README.md).
 
-## Verification
+- [Product decisions](docs/product/) define accepted product behavior.
+- [Architecture decisions](docs/architecture/) define the technical contracts and deployment model.
+- [Development guide](docs/development/README.md) covers local setup and verification.
+- [Operations guide](docs/operations/README.md) covers the current production runbook.
+- [Implementation status](IMPLEMENTATION_STATUS.md) records what is deployed, partial and intentionally deferred.
+- [AGENTS.md](AGENTS.md) contains repository guidance for coding agents.
 
-```sh
-pnpm build
-pnpm lint
-pnpm format:check
-pnpm typecheck
-TEST_DATABASE_URL=postgresql://undergammon_test:local_test_only@127.0.0.1:55432/undergammon_test pnpm test
-pnpm exec playwright install chromium
-TEST_DATABASE_URL=postgresql://undergammon_test:local_test_only@127.0.0.1:55432/undergammon_test pnpm test:e2e
-docker compose --env-file .env.example config --quiet
-```
+Historical execution prompts are archived under `docs/archive/` and are not current product or architecture authority.
 
-PowerShell: set `$env:TEST_DATABASE_URL='postgresql://...'` before the test command.
-Integration tests truncate their database: **never set TEST_DATABASE_URL to a real
-application database**. Without that variable, database tests are explicitly skipped.
-CI supplies an isolated PostgreSQL 18 service and runs the database and browser suites.
-Build shared packages before typechecking because workspace exports point at `dist`.
+## Security and contributing
 
-## Production on one VPS
+Security-sensitive reports should follow [SECURITY.md](SECURITY.md). Do not publish credentials, Telegram `initData`, session tokens, private user data or exploit details in public issues.
 
-Production currently runs on one VPS using this deployment model. For a fresh host,
-point the A record for `undergammon.tracerxbrhd.ru` to the VPS. Only add an AAAA
-record if IPv6 routing is configured. Allow inbound TCP 80/443 (and optionally UDP
-443). PostgreSQL has no published production port. Install Docker Engine and Compose.
+External contributions are handled through pull requests under the terms in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```sh
-git clone https://github.com/tracerxbrhd/undergammon.git
-cd undergammon
-cp .env.example .env
-chmod 600 .env
-# Edit .env: supply the four required values below.
-docker compose build
-docker compose up -d db
-docker compose run --rm server node dist/migrate.js
-docker compose up -d --wait
-curl --fail https://undergammon.tracerxbrhd.ru/health
-```
+## License
 
-Required owner values:
-
-| Variable                  | Value                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| `POSTGRES_PASSWORD`       | Random URL-safe password; `openssl rand -hex 32` is suitable.                  |
-| `BOT_TOKEN`               | Actual token from BotFather.                                                   |
-| `BOT_USERNAME`            | Bot username without `@`, ending in `bot`.                                     |
-| `TELEGRAM_WEBHOOK_SECRET` | Independent random URL-safe value, 32–256 characters.                          |
-| `ADMIN_TELEGRAM_IDS`      | Optional comma-separated trusted Telegram numeric IDs. Empty grants no admins. |
-
-Tuning defaults: `TURN_SECONDS=60`, `TELEGRAM_AUTH_MAX_AGE_SECONDS=300`,
-`SESSION_HOURS=24`. Production Compose supplies `DATABASE_URL`, `PUBLIC_ORIGIN`,
-`NODE_ENV`, and service ports. Native local execution uses these from `.env`.
-`BOT_PORT` defaults to 3001 and server `PORT` to 3000.
-
-In BotFather, configure the bot's **Main Mini App** and menu button to
-`https://undergammon.tracerxbrhd.ru`. Main Mini App configuration is required for
-`https://t.me/<BOT_USERNAME>?startapp=challenge_<token>` and match recovery links.
-Users must start the bot to permit fallback messages. Production uses webhook,
-never polling. Register it after HTTPS is live:
-
-```sh
-set -a
-. ./.env
-set +a
-curl --fail --silent --show-error \
-  --request POST "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
-  --data-urlencode 'url=https://undergammon.tracerxbrhd.ru/telegram/webhook' \
-  --data-urlencode "secret_token=${TELEGRAM_WEBHOOK_SECRET}"
-```
-
-Do not paste this command's expanded token or environment into logs/issues.
-Configure GitHub private vulnerability reporting before public launch.
-
-For subsequent releases, build before restarting; then run migrations and
-`docker compose up -d --wait`. A failed migration must stop deployment. The server
-also applies pending migrations at startup, so plain `docker compose up --build`
-works on a fresh configured host. Never use `down -v` for production updates.
-
-The manual GitHub Actions workflow needs environment `production`, secrets
-`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS`, and variable `DEPLOY_PATH`
-(an absolute checkout path without spaces). Pin the actual SSH host key; do not
-replace verification with `StrictHostKeyChecking=no`. The selected workflow commit
-is deployed; pushes to main never automatically deploy. Enable environment approval
-if desired. Actual VPS access and secrets are operator setup, not repository defaults.
-
-## Data and operational behavior
-
-PostgreSQL snapshots and absolute deadlines are authoritative. A single transaction
-advisory lock serializes state-changing domain operations for the initial one-server
-beta; database uniqueness constraints additionally protect critical invariants.
-This deliberately favors correctness over high-throughput multi-instance scaling.
-Do not run multiple server replicas: live socket routing is process-local.
-
-The engine's reviewed movement algorithms were selectively ported from the local
-frozen `tracerxbrhd/backgammon` engine. No legacy infrastructure/history was imported.
-Long Nardy follows the [federation's 2025 rules](https://sportnardy.ru/images/NARDI/Pravila_Nardy_30.04.2025.pdf),
-including the second-player opening-double exception and transient blockade restriction.
-Classic results use NORMAL/GAMMON/BACKGAMMON without reward multipliers or a cube.
-
-Rating is Elo with expected score `1/(1+10^((opponent-rating)/400))`, K=64 during
-10-game calibration and K=32 thereafter, rounded to an integer. Ratings are per
-ruleset and season. Current application policy selects Season 0; future season
-rollover tooling and five-game seasonal calibration remain future work.
-
-Normal completion awards 100 XP to the winner and 40 to the loser; private games
-use 50%. Surrender, timeout, abandon and no-contest award no XP to either player.
-Level is derived from total XP using progressively increasing 100, 200, 300… costs.
-Ranked wins award 20 Coins plus deterministic streak bonuses of 30/70/200 at
-3/5/10 wins. Casual/private play awards no Coins. Daily Reward provides the current
-7-day Coin cycle. Coins are an earned in-game currency with an append-only ledger;
-there is no paid currency or Telegram Stars integration. Coins can be spent in the
-Store on curated permanent cosmetics; the current purchasable catalog starts with
-the Bronze Profile Frame.
-
-Sessions use random opaque tokens, stored only as SHA-256 hashes, with HttpOnly
-SameSite=Strict cookies (Secure in production). Telegram launch data expires after
-five minutes by default; duplicate fields, invalid signatures and future timestamps
-beyond 30 seconds are rejected. Admin authorization is rechecked on the server.
-
-Short restarts preserve snapshots and turn deadlines. A persisted service heartbeat
-identifies deadlines crossed during service unavailability; affected matches become
-NO_CONTEST. Operators can explicitly invalidate an unfinished match with a reason
-through `/api/admin/no-contest`. Completed-match compensation uses audited separate
-adjustments; there is no unsafe completed-match rewrite API.
-
-Deletion disables normal use immediately, with restoration through fresh validated
-Telegram authentication for 30 days. Maintenance then removes provider bindings and
-anonymizes current profile/match snapshots. Immutable internal audit/event records
-remain access-controlled for integrity investigation; there is no public event-log API.
-
-## Manual backup and restore
-
-```sh
-mkdir -p backups
-docker compose exec -T db pg_dump -U undergammon -d undergammon -Fc > backups/undergammon.dump
-# Copy the dump off the VPS yourself. Stop writers before a deliberate restore:
-docker compose stop server bot
-docker compose exec -T db pg_restore -U undergammon -d undergammon --clean --if-exists < backups/undergammon.dump
-docker compose up -d --wait
-```
-
-Restore replaces database contents: confirm the target and backup first. Automated
-off-site backups remain intentionally deferred. Keep dumps out of source control.
+This repository is **public-source proprietary software, not open source**. Source availability permits inspection and study but does not grant permission to reuse, redistribute or create derivative products. See [LICENSE](LICENSE) for the source notice and applicable terms.

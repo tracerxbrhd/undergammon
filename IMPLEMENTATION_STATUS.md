@@ -72,7 +72,7 @@ Production is live on one VPS using Docker Compose, Caddy and PostgreSQL. Postgr
 
 Production deployment remains deliberately manual. `.github/workflows/deploy.yml` is triggered with `workflow_dispatch`, runs the verification workflow first, deploys the selected commit to the VPS, runs migrations, updates services and checks `https://undergammon.tracerxbrhd.ru/health`. Merging to `main` does **not** automatically deploy production.
 
-The current operational model has no staging environment, Redis, queue infrastructure, microservices or multiple realtime server replicas. Manual backup/restore commands are documented in `README.md`; automated off-site backups remain deferred.
+The current operational model has no staging environment, Redis, queue infrastructure, microservices or multiple realtime server replicas. Manual backup/restore commands are documented in [`docs/operations/README.md`](docs/operations/README.md); automated off-site backups remain deferred.
 
 ## Verification baseline
 
@@ -87,7 +87,7 @@ Update 1 final verification for PR #11 passed the repository's production verifi
 - production dependency audit;
 - Docker Compose configuration validation.
 
-The repository CI definition runs the same core build/lint/format/typecheck/test/E2E/audit/Compose checks against an isolated PostgreSQL service. Tests and exact local commands are documented in `README.md`. Integration tests truncate their test database: never point `TEST_DATABASE_URL` at production data.
+The repository CI definition runs the same core build/lint/format/typecheck/test/E2E/audit/Compose checks against an isolated PostgreSQL service. Tests and exact local commands are documented in [`docs/development/README.md`](docs/development/README.md). Integration tests truncate their test database: never point `TEST_DATABASE_URL` at production data.
 
 ## Current release position
 
