@@ -222,6 +222,143 @@ strong,
 .identity p {
   margin: 2px 0;
 }
+.identity-copy {
+  min-width: 0;
+  flex: 1;
+}
+.identity-copy h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.daily-reward-control {
+  width: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.reward-trigger {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 10px;
+  border-radius: 13px;
+  background: var(--surface-base);
+}
+.reward-trigger svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.daily-reward-control.available .reward-trigger {
+  border-color: var(--accent-muted);
+  color: var(--accent-active);
+  box-shadow: inset 0 0 0 1px #98a86f18;
+  animation: reward-breathe 2.8s ease-in-out infinite;
+}
+.daily-reward-control.inactive .reward-trigger {
+  color: var(--text-muted);
+  opacity: 0.52;
+}
+.reward-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.reward-countdown {
+  font-variant-numeric: tabular-nums;
+  line-height: 12px;
+}
+.daily-reward-sheet {
+  padding-bottom: 2px;
+}
+.reward-sheet-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.reward-sheet-heading h2,
+.reward-sheet-heading p {
+  margin-top: 0;
+}
+.sheet-close {
+  width: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 26px;
+}
+.reward-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.reward-step {
+  min-width: 0;
+  padding: 10px 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 11px;
+  background: var(--surface-base);
+  text-align: center;
+}
+.reward-step:nth-child(n + 5) {
+  grid-column: span 1;
+}
+.reward-step:nth-child(5) {
+  grid-column-start: 1;
+}
+.reward-step small,
+.reward-step span {
+  display: block;
+  white-space: nowrap;
+}
+.reward-step strong {
+  display: block;
+  margin: 5px 0 2px;
+  font-size: 17px;
+}
+.reward-step span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.reward-step.completed,
+.reward-step.is-completed {
+  color: var(--text-secondary);
+}
+.reward-step.current {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface-base));
+  box-shadow: inset 0 0 0 1px #98a86f22;
+}
+.reward-step.current small::after {
+  content: ' ·';
+}
+.reward-success {
+  margin: 16px 0 0;
+  color: var(--success);
+  text-align: center;
+  font-weight: 600;
+}
+.reward-claim {
+  margin-top: 18px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-reward-control.available .reward-trigger {
+    animation: none;
+  }
+}
 .avatar {
   width: 44px;
   height: 44px;

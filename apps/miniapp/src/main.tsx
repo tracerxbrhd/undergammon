@@ -9,6 +9,7 @@ import { PublicProfile } from './PublicProfile';
 import { GlassSurface, ProgressBar, SegmentedControl, BottomSheet } from './ui';
 import { primaryNavigation, type Screen } from './app/navigation';
 import { resolveProfileFrame } from './game/cosmetics';
+import { DailyReward } from './DailyReward';
 import './styles/tokens.css';
 import './style.css';
 interface Challenge {
@@ -303,12 +304,21 @@ function App() {
               <>
                 <div className="identity">
                   <span className="avatar large">{avatarEmoji[me.avatar]}</span>
-                  <div>
+                  <div className="identity-copy">
                     <h2>{me.nickname}</h2>
                     <p>
                       {t.level} {me.level} · <b>{me.coins}</b> {t.coins}
                     </p>
                   </div>
+                  <DailyReward
+                    language={language}
+                    onBalance={(coins) =>
+                      setMe((profile) => (profile ? { ...profile, coins } : profile))
+                    }
+                    onStaleClaim={async () => {
+                      await refresh();
+                    }}
+                  />
                 </div>
                 <GlassSurface className="setup-card">
                   <SegmentedControl

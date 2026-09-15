@@ -84,6 +84,97 @@ test('app shell follows Telegram content safe-area changes', async ({ browser })
   await page.screenshot({ path: 'test-results/app-shell-safe-area.png', fullPage: true });
   await context.close();
 });
+test('daily reward completes from the compact Home affordance', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await telegram(context, Date.now());
+  const page = await context.newPage();
+  await page.goto('/');
+
+  await expect(page.locator('button.primary', { hasText: 'Find a player' })).toBeVisible();
+  const reward = page.getByRole('button', { name: 'Daily Reward available' });
+  await expect(reward).toBeVisible();
+  await reward.click();
+
+  const sheet = page.getByRole('dialog', { name: 'Daily Reward' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.locator('.reward-step')).toHaveCount(7);
+  await expect(sheet.locator('.reward-step.current')).toHaveCount(1);
+  await expect(sheet.getByText('Day 7')).toBeVisible();
+
+  const coinsBefore = Number(await page.locator('.identity-copy p b').textContent());
+  const claim = sheet.getByRole('button', { name: /Claim 5 Coins/ });
+  await page.route('**/api/daily-reward/claim', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.continue();
+  });
+  const click = claim.click();
+  await expect(sheet.locator('.reward-claim')).toBeDisabled();
+  await click;
+  await expect(sheet.getByRole('status')).toHaveText('✓ +5 Coins');
+  await expect(page.locator('.identity-copy p b')).toHaveText(String(coinsBefore + 5));
+  await sheet.getByRole('button', { name: 'Close' }).click();
+
+  const claimed = page.getByRole('button', { name: /Today's reward claimed/ });
+  await expect(claimed).toBeDisabled();
+  await expect(page.locator('.reward-countdown')).toHaveText(/^\d{2}:\d{2}$/);
+  await claimed.click({ force: true });
+  await expect(page.getByRole('dialog', { name: 'Daily Reward' })).toHaveCount(0);
+  await context.close();
+});
+test('daily reward revalidates stale claims and countdown expiry with the server', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await telegram(context, Date.now());
+  const page = await context.newPage();
+  const rewards = [5, 5, 10, 10, 15, 20, 35].map((coins, index) => ({
+    day: index + 1,
+    coins,
+  }));
+  const nextClaimAt = new Date(Date.now() + 500).toISOString();
+  let statusRequests = 0;
+  await page.route('**/api/daily-reward', async (route) => {
+    statusRequests += 1;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(
+        statusRequests === 1
+          ? {
+              rewards,
+              currentDay: 1,
+              claimedToday: false,
+              lastClaimDate: null,
+              nextClaimAt: null,
+            }
+          : {
+              rewards,
+              currentDay: 1,
+              claimedToday: true,
+              lastClaimDate: '2026-09-15',
+              nextClaimAt,
+            },
+      ),
+    });
+  });
+  await page.route('**/api/daily-reward/claim', (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'DAILY_REWARD_ALREADY_CLAIMED' }),
+    }),
+  );
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Daily Reward available' }).click();
+  await page
+    .getByRole('dialog', { name: 'Daily Reward' })
+    .getByRole('button', { name: /Claim/ })
+    .click();
+  await expect(page.getByRole('button', { name: /Today's reward claimed/ })).toBeDisabled();
+  await expect(page.getByRole('status')).toHaveCount(0);
+  await expect.poll(() => statusRequests).toBeGreaterThanOrEqual(3);
+  await expect(page.getByRole('button', { name: /Today's reward claimed/ })).toBeDisabled();
+  await context.close();
+});
 for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
   test(`two authenticated players play and reconnect in a shorter stable viewport: ${ruleset}`, async ({
     browser,
