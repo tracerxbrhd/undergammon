@@ -195,9 +195,10 @@ strong,
 }
 .app-shell {
   width: min(100%, 660px);
-  min-height: var(--viewport-height);
+  min-height: var(--app-viewport-stable-height);
   margin: auto;
-  padding: 16px 16px calc(94px + max(var(--safe-bottom), var(--platform-safe-bottom, 0px)));
+  padding: calc(16px + var(--app-content-safe-top)) calc(16px + var(--app-content-safe-right))
+    calc(94px + var(--app-content-safe-bottom)) calc(16px + var(--app-content-safe-left));
 }
 .app-shell > header {
   display: flex;
@@ -289,7 +290,7 @@ strong,
   position: fixed;
   z-index: 20;
   left: 50%;
-  bottom: max(8px, var(--platform-safe-bottom, 0px));
+  bottom: max(8px, var(--app-content-safe-bottom));
   width: min(calc(100% - 24px), 620px);
   height: 70px;
   transform: translateX(-50%);
@@ -521,7 +522,7 @@ strong,
 .bottom-sheet {
   width: min(100%, 660px);
   max-height: 88%;
-  padding: 8px 18px calc(18px + max(var(--safe-bottom), var(--platform-safe-bottom, 0px)));
+  padding: 8px 18px calc(18px + var(--app-content-safe-bottom));
   overflow: auto;
   border-radius: 20px 20px 0 0;
   animation: sheet-in 0.2s ease-out;
@@ -540,7 +541,7 @@ strong,
 .connection-banner {
   position: fixed;
   z-index: 80;
-  top: 8px;
+  top: calc(8px + var(--app-content-safe-top));
   left: 50%;
   width: min(calc(100% - 24px), 620px);
   transform: translateX(-50%);
@@ -558,7 +559,7 @@ strong,
   background: transparent;
 }
 .focused-flow {
-  height: var(--viewport-height);
+  height: var(--app-viewport-stable-height);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -679,9 +680,11 @@ pre {
   z-index: 50;
   inset: 0;
   width: 100%;
-  height: var(--viewport-height);
-  padding: 8px max(8px, calc((100vw - 620px) / 2))
-    calc(8px + max(var(--safe-bottom), var(--platform-safe-bottom, 0px)));
+  height: var(--app-viewport-stable-height);
+  padding: calc(8px + var(--app-content-safe-top))
+    max(calc(8px + var(--app-content-safe-right)), calc((100vw - 620px) / 2))
+    calc(8px + var(--app-content-safe-bottom))
+    max(calc(8px + var(--app-content-safe-left)), calc((100vw - 620px) / 2));
   display: grid;
   grid-template-rows: 58px minmax(0, 1fr) 58px 66px;
   gap: 6px;
@@ -964,7 +967,7 @@ pre {
   position: absolute;
   z-index: 31;
   left: 50%;
-  bottom: max(8px, var(--platform-safe-bottom, 0px));
+  bottom: max(8px, var(--app-content-safe-bottom));
   width: min(calc(100% - 24px), 430px);
   transform: translateX(-50%);
   padding: 20px;
@@ -999,7 +1002,7 @@ pre {
   .game-screen {
     grid-template-rows: 50px minmax(0, 1fr) 50px 58px;
     gap: 4px;
-    padding-top: 4px;
+    padding-top: calc(4px + var(--app-content-safe-top));
   }
   .player-strip {
     padding: 3px 7px;

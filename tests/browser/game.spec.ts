@@ -1,6 +1,6 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
 import { createHmac } from 'node:crypto';
-async function telegram(context: BrowserContext, id: number) {
+async function telegram(context: BrowserContext, id: number, contentSafeTop = 0) {
   const params = new URLSearchParams({
     auth_date: String(Math.floor(Date.now() / 1000)),
     user: JSON.stringify({ id, language_code: 'en' }),
@@ -14,17 +14,70 @@ async function telegram(context: BrowserContext, id: number) {
     .digest();
   params.set('hash', createHmac('sha256', secret).update(data).digest('hex'));
   await context.route('https://telegram.org/**', (route) => route.abort());
-  await context.addInitScript((raw) => {
-    Object.assign(window, {
-      Telegram: { WebApp: { initData: raw, ready() {}, expand() {}, openTelegramLink() {} } },
-    });
-  }, params.toString());
+  await context.addInitScript(
+    ({ raw, contentSafeTop }) => {
+      const listeners = new Map<string, Set<() => void>>();
+      Object.assign(window, {
+        Telegram: {
+          WebApp: {
+            initData: raw,
+            viewportStableHeight: window.innerHeight,
+            safeAreaInset: { top: 0, right: 0, bottom: 0, left: 0 },
+            contentSafeAreaInset: { top: contentSafeTop, right: 0, bottom: 0, left: 0 },
+            ready() {},
+            expand() {},
+            openTelegramLink() {},
+            onEvent(event: string, listener: () => void) {
+              const eventListeners = listeners.get(event) ?? new Set();
+              eventListeners.add(listener);
+              listeners.set(event, eventListeners);
+            },
+            offEvent(event: string, listener: () => void) {
+              listeners.get(event)?.delete(listener);
+            },
+            emit(event: string) {
+              listeners.get(event)?.forEach((listener) => listener());
+            },
+          },
+        },
+      });
+    },
+    { raw: params.toString(), contentSafeTop },
+  );
 }
 test('public landing is responsive and provides Telegram entry', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('link', { name: /Open in Telegram/ })).toBeVisible();
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
   await page.screenshot({ path: 'test-results/landing.png', fullPage: true });
+});
+test('app shell follows Telegram content safe-area changes', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await telegram(context, Date.now(), 36);
+  const page = await context.newPage();
+  await page.goto('/');
+  const header = page.locator('.app-shell > header');
+  await expect(header).toBeVisible();
+  await expect.poll(async () => (await header.boundingBox())?.y).toBe(52);
+
+  await page.evaluate(() => {
+    const webApp = (
+      window as typeof window & {
+        Telegram: {
+          WebApp: {
+            contentSafeAreaInset: { top: number };
+            emit(event: string): void;
+          };
+        };
+      }
+    ).Telegram.WebApp;
+    webApp.contentSafeAreaInset.top = 52;
+    webApp.emit('contentSafeAreaChanged');
+  });
+  await expect.poll(async () => (await header.boundingBox())?.y).toBe(68);
+  await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await page.screenshot({ path: 'test-results/app-shell-safe-area.png', fullPage: true });
+  await context.close();
 });
 for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
   test(`two authenticated players play and reconnect: ${ruleset}`, async ({ browser }) => {
