@@ -162,6 +162,12 @@
   white-space: nowrap;
 }
 
+button.cosmetic-state:disabled {
+  background: transparent;
+  opacity: 1;
+  cursor: default;
+}
+
 .cosmetic-state.owned,
 .cosmetic-state.equipped {
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
