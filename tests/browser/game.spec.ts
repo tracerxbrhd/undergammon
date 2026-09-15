@@ -207,12 +207,13 @@ test('player buys, equips, and removes a permanent profile frame', async ({ brow
 
   const navigation = page.getByRole('navigation', { name: 'Primary' });
   await expect(navigation.getByRole('button')).toHaveText([
-    '□Store',
-    '◇Cosmetics',
-    '●Play',
-    '◆Rankings',
-    '◉Profile',
+    'Store',
+    'Cosmetics',
+    'Play',
+    'Rankings',
+    'Profile',
   ]);
+  await expect(navigation.locator('.ui-icon')).toHaveCount(5);
   await navigation.getByRole('button', { name: /Store/ }).click();
   await expect(page.getByRole('heading', { name: 'Store' })).toBeVisible();
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
