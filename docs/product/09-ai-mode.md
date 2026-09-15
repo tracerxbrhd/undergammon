@@ -1,10 +1,10 @@
 # 09 — AI Mode
 
 ## Status
-Accepted product decisions from interview question #9.
+Deferred product design. The rules below remain the accepted direction if AI is implemented later; AI is not a current Season 0 selectable opponent and is not an Update 1 feature.
 
 ## Purpose
-AI matches are a training and single-player mode. They must use the same canonical rules and game engine as PvP, but they are not part of the competitive ecosystem.
+AI matches are a planned training and single-player mode. They must use the same canonical rules and game engine as PvP, but they are not part of the competitive ecosystem.
 
 ## Rules and fairness
 - AI uses the same deterministic game rules as human players.
@@ -14,7 +14,7 @@ AI matches are a training and single-player mode. They must use the same canonic
 - AI may only choose legal moves produced/validated by the game engine.
 
 ## Difficulty levels
-The first release supports exactly three difficulty levels:
+If the deferred mode is implemented, the accepted initial design supports exactly three difficulty levels:
 - Easy
 - Normal
 - Hard
@@ -67,7 +67,7 @@ The normal project invariant still applies:
 
 > One Game Account may have at most one unfinished match at a time, including an AI match.
 
-## Explicit non-goals for the first release
+## Explicit non-goals for the initial AI implementation
 - No more than three difficulty levels.
 - No mid-match difficulty switching.
 - No manipulated RNG by difficulty.
