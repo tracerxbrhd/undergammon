@@ -206,7 +206,7 @@ test('player buys, equips, and removes a permanent profile frame', async ({ brow
   await page.reload();
 
   const navigation = page.getByRole('navigation', { name: 'Primary' });
-  expect(await navigation.getByRole('button').allTextContents()).toEqual([
+  await expect(navigation.getByRole('button')).toHaveText([
     '□Store',
     '◇Cosmetics',
     '●Play',
