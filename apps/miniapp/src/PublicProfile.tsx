@@ -87,7 +87,7 @@ export function PublicProfile({
               </div>
               <div className="public-profile-stat">
                 <strong>{winRate}%</strong>
-                <span>{language === 'ru' ? 'Побед' : 'Win rate'}</span>
+                <span>{language === 'ru' ? 'Процент побед' : 'Win rate'}</span>
               </div>
             </div>
           </>
