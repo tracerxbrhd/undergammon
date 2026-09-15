@@ -22,6 +22,8 @@ export function matchXp(mode: string, reason: string, won: boolean) {
 export function rankedCoins(streak: number) {
   return 20 + ({ 3: 30, 5: 70, 10: 200 }[streak] ?? 0);
 }
+/** Season 0 rewards indexed by claim-cycle day (Day 1 through Day 7). */
+export const dailyRewardCoins = [5, 5, 10, 10, 15, 20, 35] as const;
 export function ratingWindow(seconds: number) {
   return seconds < 10
     ? 100

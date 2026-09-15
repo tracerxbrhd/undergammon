@@ -97,6 +97,23 @@ export interface LevelProgress {
   xpIntoLevel: number;
   xpRequiredForNextLevel: number;
 }
+export interface DailyRewardDay {
+  day: number;
+  coins: number;
+}
+export interface DailyRewardStatus {
+  rewards: DailyRewardDay[];
+  /** Available cycle day, or the cycle day claimed today when claimedToday is true. */
+  currentDay: number;
+  claimedToday: boolean;
+  lastClaimDate: string | null;
+  nextClaimAt: string | null;
+}
+export interface DailyRewardClaimResult {
+  rewardCoins: number;
+  balance: number;
+  status: DailyRewardStatus;
+}
 export interface MatchResultProgression {
   xpGained: number;
   totalXpBefore: number;

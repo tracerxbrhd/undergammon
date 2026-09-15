@@ -27,6 +27,7 @@ import { MatchService } from './matches.js';
 import { avatars, validateNickname, levelFromXp, levelProgressFromXp } from './policy.js';
 import type { Config } from './config.js';
 import { equippedCosmetics } from './cosmetics.js';
+import { claimDailyReward, dailyRewardStatus } from './daily-rewards.js';
 const uuid = z.uuid();
 export async function buildServer(pool: pg.Pool, config: Config) {
   const app = Fastify({
@@ -128,6 +129,16 @@ export async function buildServer(pool: pg.Pool, config: Config) {
     },
   );
   app.get('/api/me', async (req) => profile(pool, await identity(req), config));
+  app.get('/api/daily-reward', async (req) => dailyRewardStatus(pool, await identity(req)));
+  app.post('/api/daily-reward/claim', async (req) => {
+    const accountId = await identity(req);
+    const result = await claimDailyReward(pool, accountId);
+    app.log.info(
+      { accountId, cycleDay: result.status.currentDay, rewardCoins: result.rewardCoins },
+      'Daily reward claimed',
+    );
+    return result;
+  });
   app.post('/api/logout', async (req, reply) => {
     const id = await identity(req);
     await pool.query('DELETE FROM sessions WHERE account_id=$1', [id]);
