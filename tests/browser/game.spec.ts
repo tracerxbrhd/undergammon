@@ -1,6 +1,11 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
 import { createHmac } from 'node:crypto';
-async function telegram(context: BrowserContext, id: number, contentSafeTop = 0) {
+async function telegram(
+  context: BrowserContext,
+  id: number,
+  contentSafeTop = 0,
+  stableViewportHeight?: number,
+) {
   const params = new URLSearchParams({
     auth_date: String(Math.floor(Date.now() / 1000)),
     user: JSON.stringify({ id, language_code: 'en' }),
@@ -15,13 +20,13 @@ async function telegram(context: BrowserContext, id: number, contentSafeTop = 0)
   params.set('hash', createHmac('sha256', secret).update(data).digest('hex'));
   await context.route('https://telegram.org/**', (route) => route.abort());
   await context.addInitScript(
-    ({ raw, contentSafeTop }) => {
+    ({ raw, contentSafeTop, stableViewportHeight }) => {
       const listeners = new Map<string, Set<() => void>>();
       Object.assign(window, {
         Telegram: {
           WebApp: {
             initData: raw,
-            viewportStableHeight: window.innerHeight,
+            viewportStableHeight: stableViewportHeight ?? window.innerHeight,
             safeAreaInset: { top: 0, right: 0, bottom: 0, left: 0 },
             contentSafeAreaInset: { top: contentSafeTop, right: 0, bottom: 0, left: 0 },
             ready() {},
@@ -42,7 +47,7 @@ async function telegram(context: BrowserContext, id: number, contentSafeTop = 0)
         },
       });
     },
-    { raw: params.toString(), contentSafeTop },
+    { raw: params.toString(), contentSafeTop, stableViewportHeight },
   );
 }
 test('public landing is responsive and provides Telegram entry', async ({ page }) => {
@@ -80,12 +85,14 @@ test('app shell follows Telegram content safe-area changes', async ({ browser })
   await context.close();
 });
 for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
-  test(`two authenticated players play and reconnect: ${ruleset}`, async ({ browser }) => {
+  test(`two authenticated players play and reconnect in a shorter stable viewport: ${ruleset}`, async ({
+    browser,
+  }) => {
     const a = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const b = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const seed = Date.now();
-    await telegram(a, seed);
-    await telegram(b, seed + 1);
+    await telegram(a, seed, 36, 760);
+    await telegram(b, seed + 1, 36, 760);
     const pa = await a.newPage(),
       pb = await b.newPage();
     const primaryFind = (page: typeof pa) =>
@@ -99,6 +106,24 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
     await primaryFind(pb).click();
     await expect(pa.locator('.board')).toBeVisible({ timeout: 15000 });
     await expect(pb.locator('.board')).toBeVisible({ timeout: 15000 });
+    const gameScreen = pa.locator('.game-screen');
+    await expect
+      .poll(async () => await gameScreen.evaluate((element) => element.offsetTop))
+      .toBe(84);
+    await expect.poll(async () => (await gameScreen.boundingBox())?.height).toBe(760);
+    await expect
+      .poll(async () => (await gameScreen.locator('.player-strip').first().boundingBox())?.y)
+      .toBe(128);
+    await expect.poll(async () => (await gameScreen.boundingBox())?.y).toBe(84);
+    await expect
+      .poll(async () => {
+        const box = await gameScreen.boundingBox();
+        return box ? box.y + box.height : undefined;
+      })
+      .toBe(844);
+    await expect
+      .poll(async () => pa.evaluate(() => document.documentElement.scrollHeight))
+      .toBe(844);
     await expect(pa.locator('body')).toHaveJSProperty('scrollWidth', 390);
     await pa.screenshot({ path: `test-results/game-${ruleset}.png`, fullPage: true });
     await expect
