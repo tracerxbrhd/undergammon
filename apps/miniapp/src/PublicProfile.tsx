@@ -2,13 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from './platform';
 import { copy, avatarEmoji, message, type Language } from './content';
 import { BottomSheet } from './ui';
-interface PublicData {
-  nickname: string;
-  avatar: string;
-  level: number;
-  stats: { played: number; wins: number };
-  ratings: { ruleset: string; rating: number; peak: number; played: number }[];
-}
+import type { PublicProfile as PublicData } from '@undergammon/protocol';
+import { resolveProfileFrame } from './game/cosmetics';
 export function PublicProfile({
   id,
   language,
@@ -33,7 +28,11 @@ export function PublicProfile({
       </button>
       {profile ? (
         <>
-          <span className="avatar large">{avatarEmoji[profile.avatar]}</span>
+          <span
+            className={`avatar large ${resolveProfileFrame(profile.cosmetics.profileFrame).className}`}
+          >
+            {avatarEmoji[profile.avatar]}
+          </span>
           <h2>{profile.nickname}</h2>
           <p>
             {t.level} {profile.level}

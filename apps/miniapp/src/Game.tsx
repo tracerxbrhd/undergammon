@@ -128,7 +128,7 @@ export function Game({
     );
   const seat = s.players.A.accountId === accountId ? 'A' : 'B';
   const opponent = seat === 'A' ? 'B' : 'A';
-  const cosmetics = resolveMatchCosmetics({ localSeat: seat });
+  const cosmetics = resolveMatchCosmetics({ localSeat: seat, players: s.players });
   const yourTurn =
     s.game.activePlayer === seat &&
     s.status === 'ACTIVE' &&

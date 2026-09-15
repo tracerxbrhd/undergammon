@@ -88,6 +88,7 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
   test(`two authenticated players play and reconnect in a shorter stable viewport: ${ruleset}`, async ({
     browser,
   }) => {
+    test.setTimeout(60000);
     const a = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const b = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const seed = Date.now();
@@ -161,6 +162,17 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
       .click();
     await expect(pa.getByRole('heading', { name: 'You lost' })).toBeVisible();
     await expect(pb.getByRole('heading', { name: 'You won' })).toBeVisible();
+    await pa.locator('.result-sheet').getByRole('button', { name: 'Play', exact: true }).click();
+    await pa
+      .getByRole('navigation', { name: 'Primary' })
+      .getByRole('button', { name: /Profile/ })
+      .click();
+    await expect(pa.locator('.profile-avatar.profile-frame-season0-tester')).toBeVisible();
+    if (ruleset === 'LONG_NARDY')
+      await pa.screenshot({
+        path: 'test-results/season0-tester-profile-frame.png',
+        fullPage: true,
+      });
     await a.close();
     await b.close();
   });

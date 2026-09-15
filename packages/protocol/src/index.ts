@@ -23,6 +23,11 @@ export const commandSchema = z
 export type Command = z.infer<typeof commandSchema>;
 export type Ruleset = z.infer<typeof rulesetSchema>;
 export type Mode = z.infer<typeof modeSchema>;
+export const profileFrameIdSchema = z.enum(['default', 'season0_tester_frame']);
+export type ProfileFrameId = z.infer<typeof profileFrameIdSchema>;
+export interface EquippedCosmetics {
+  profileFrame: ProfileFrameId;
+}
 export interface Player {
   accountId: string;
   nickname: string;
@@ -30,6 +35,8 @@ export interface Player {
   rating: number;
   preliminary: boolean;
   connected: boolean;
+  /** Optional so active snapshots written before cosmetic support remain valid. */
+  cosmetics?: EquippedCosmetics;
 }
 export interface MatchSnapshot {
   id: string;
@@ -72,6 +79,17 @@ export interface Profile {
   admin: boolean;
   ratings: { ruleset: Ruleset; rating: number; played: number; peak: number }[];
   activeMatchId: string | null;
+  cosmetics: EquippedCosmetics;
+}
+export interface PublicProfile {
+  id: string;
+  nickname: string;
+  avatar: string;
+  totalXp: number;
+  level: number;
+  ratings: { ruleset: Ruleset; rating: number; peak: number; played: number; wins: number }[];
+  stats: { played: number; wins: number };
+  cosmetics: EquippedCosmetics;
 }
 export interface LevelProgress {
   levelStartTotalXp: number;

@@ -1,9 +1,10 @@
 import type { PlayerId } from '@undergammon/game-engine';
+import type { EquippedCosmetics, ProfileFrameId } from '@undergammon/protocol';
 
 export type DefaultCosmeticId = 'default';
 
 interface CosmeticPresentation {
-  readonly id: DefaultCosmeticId;
+  readonly id: string;
   readonly className: string;
 }
 
@@ -48,6 +49,18 @@ const defaultPresentations = {
   reactionPack: { id: 'default', className: 'reaction-pack-default' },
 } as const;
 
+const profileFrames: Record<ProfileFrameId, ProfileFramePresentation> = {
+  default: defaultPresentations.profileFrame,
+  season0_tester_frame: {
+    id: 'season0_tester_frame',
+    className: 'profile-frame-season0-tester',
+  },
+};
+
+export function resolveProfileFrame(id: ProfileFrameId): ProfileFramePresentation {
+  return profileFrames[id];
+}
+
 function withOwner<T extends CosmeticPresentation>(
   ownerSeat: PlayerId,
   presentation: T,
@@ -57,13 +70,15 @@ function withOwner<T extends CosmeticPresentation>(
 
 /**
  * Resolves trusted match presentation into the fixed cosmetic specifications that
- * rendering components may consume. There is no ownership contract yet, so every
- * slot deliberately resolves to the existing Default presentation.
+ * rendering components may consume. Profile Frames use trusted snapshot data;
+ * slots without a server contract deliberately remain Default.
  */
 export function resolveMatchCosmetics({
   localSeat,
+  players,
 }: {
   readonly localSeat: PlayerId;
+  readonly players?: Partial<Record<PlayerId, { cosmetics?: EquippedCosmetics }>>;
 }): ResolvedMatchCosmetics {
   const opponentSeat: PlayerId = localSeat === 'A' ? 'B' : 'A';
   return {
@@ -80,8 +95,14 @@ export function resolveMatchCosmetics({
       opponentSkin: withOwner(opponentSeat, defaultPresentations.diceSkin),
     },
     profile: {
-      localFrame: withOwner(localSeat, defaultPresentations.profileFrame),
-      opponentFrame: withOwner(opponentSeat, defaultPresentations.profileFrame),
+      localFrame: withOwner(
+        localSeat,
+        resolveProfileFrame(players?.[localSeat]?.cosmetics?.profileFrame ?? 'default'),
+      ),
+      opponentFrame: withOwner(
+        opponentSeat,
+        resolveProfileFrame(players?.[opponentSeat]?.cosmetics?.profileFrame ?? 'default'),
+      ),
     },
     reactions: {
       localPack: withOwner(localSeat, defaultPresentations.reactionPack),

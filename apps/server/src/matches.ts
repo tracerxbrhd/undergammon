@@ -16,6 +16,7 @@ import { requireActive } from './accounts.js';
 import { opaqueToken } from './auth.js';
 import { matchXp, rankedCoins, ratingDelta, ratingWindow } from './policy.js';
 import type { Config } from './config.js';
+import { equippedCosmetics, grantSeason0TesterFrame } from './cosmetics.js';
 interface Rating {
   rating: number;
   played: number;
@@ -93,6 +94,7 @@ export class MatchService {
         rating: r.rating,
         preliminary: r.played < 10,
         connected: false,
+        cosmetics: await equippedCosmetics(db, id),
       };
     }
     const s: MatchSnapshot = {
@@ -292,6 +294,8 @@ export class MatchService {
           if (won) await this.coins(db, id, rankedCoins(r.streak + 1), 'RANKED_REWARD', s.id);
         }
       }
+      for (const seat of ['A', 'B'] as const)
+        await grantSeason0TesterFrame(db, s.players[seat].accountId, s.id);
     }
     await db.query('UPDATE match_players SET unfinished=false,control_id=NULL WHERE match_id=$1', [
       s.id,
