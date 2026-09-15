@@ -3,7 +3,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { rows, transaction, type Db } from './db.js';
 import { opaqueToken, tokenHash, verifyTelegram } from './auth.js';
-import { adjectives, nouns, avatars, levelFromXp } from './policy.js';
+import { adjectives, nouns, avatars, levelFromXp, levelProgressFromXp } from './policy.js';
 import type { Config } from './config.js';
 export interface Account {
   id: string;
@@ -124,6 +124,7 @@ export async function profile(pool: pg.Pool, id: string, config: Config): Promis
     muteOpponentReactions: a.mute_reactions,
     totalXp: a.total_xp,
     level: levelFromXp(a.total_xp),
+    levelProgress: levelProgressFromXp(a.total_xp),
     coins: a.coins,
     admin: await isAdmin(pool, id, config),
     ratings,

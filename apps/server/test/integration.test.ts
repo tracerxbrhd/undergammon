@@ -152,6 +152,29 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
       ),
     ).toBe(true);
   });
+  it('persists viewer-specific XP and authoritative ranked rating results', async () => {
+    const s = await make();
+    await transaction(pool, async (db) => {
+      await service.finish(db, s, 'A', 'BEAR_OFF');
+      await service.save(db, s, 'FINISHED');
+    });
+    const result = await rows<{
+      xp_before: number;
+      xp_after: number;
+      xp_gained: number;
+      rating_before: number;
+      rating_after: number;
+    }>(
+      pool,
+      'SELECT xp_before,xp_after,xp_gained,rating_before,rating_after FROM match_players WHERE match_id=$1 AND account_id=$2',
+      [s.id, user(0)],
+    );
+    const playerResult = result[0];
+    expect(playerResult).toBeDefined();
+    if (!playerResult) throw new Error('MISSING_MATCH_RESULT');
+    expect(playerResult.xp_after - playerResult.xp_before).toBe(playerResult.xp_gained);
+    expect(playerResult.rating_after).not.toBe(playerResult.rating_before);
+  });
   it('makes Coin ledger adjustments idempotent and rejects negative balances', async () => {
     await transaction(pool, async (db) => {
       await service.coins(db, user(0), 100, 'ADMIN_ADJUSTMENT', 'test');

@@ -37,8 +37,9 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
       pb = await b.newPage();
     await Promise.all([pa.goto('/'), pb.goto('/')]);
     await expect(pa.getByRole('button', { name: 'Find a player' })).toBeVisible();
-    await pa.getByRole('combobox').selectOption(ruleset);
-    await pb.getByRole('combobox').selectOption(ruleset);
+    const rulesetName = ruleset === 'LONG_NARDY' ? 'Long Nardy' : 'Backgammon';
+    await pa.getByRole('button', { name: rulesetName, exact: true }).click();
+    await pb.getByRole('button', { name: rulesetName, exact: true }).click();
     await pa.getByRole('button', { name: 'Find a player' }).click();
     await pb.getByRole('button', { name: 'Find a player' }).click();
     await expect(pa.locator('.board')).toBeVisible({ timeout: 15000 });
@@ -72,8 +73,12 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
     await pa.reload();
     await pa.getByRole('button', { name: 'Return to game' }).click();
     await expect(pa.locator('.board')).toBeVisible({ timeout: 15000 });
-    pa.on('dialog', (dialog) => dialog.accept());
+    await pa.getByRole('button', { name: 'Match menu' }).click();
     await pa.getByRole('button', { name: 'Surrender', exact: true }).click();
+    await pa
+      .getByRole('dialog', { name: 'Surrender' })
+      .getByRole('button', { name: 'Surrender' })
+      .click();
     await expect(pa.getByRole('heading', { name: 'You lost' })).toBeVisible();
     await expect(pb.getByRole('heading', { name: 'You won' })).toBeVisible();
     await a.close();

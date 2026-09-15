@@ -7,10 +7,11 @@ import {
   type BoardState,
   type BackgammonBoardState,
 } from '@undergammon/game-engine';
-import type { MatchSnapshot } from '@undergammon/protocol';
+import type { MatchResultProgression, MatchSnapshot } from '@undergammon/protocol';
 import { connectMatch } from './realtime';
-import { copy, avatarEmoji, message, type Language } from './content';
-import { platform, feedbackSound } from './platform';
+import { copy, rules, avatarEmoji, message, type Language } from './content';
+import { api, platform, feedbackSound } from './platform';
+import { BottomSheet, ProgressBar } from './ui';
 function hasBar(board: BoardState): board is BackgammonBoardState {
   return 'bar' in board;
 }
@@ -37,6 +38,11 @@ export function Game({
   const [control, setControl] = useState(true);
   const [error, setError] = useState('');
   const [reaction, setReaction] = useState('');
+  const [menu, setMenu] = useState(false);
+  const [reactions, setReactions] = useState(false);
+  const [confirmSurrender, setConfirmSurrender] = useState(false);
+  const [result, setResult] = useState<MatchResultProgression | null>(null);
+  const [resultVisible, setResultVisible] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [offset, setOffset] = useState(0);
   const [frame, setFrame] = useState<BoardState | BackgammonBoardState | null>(null);
@@ -107,6 +113,14 @@ export function Game({
       c.close();
     };
   }, [matchId]);
+  useEffect(() => {
+    if (s?.status !== 'FINISHED') return;
+    const reveal = setTimeout(() => setResultVisible(true), s.lastMoves.length * 250 + 300);
+    void api<MatchResultProgression>(`/matches/${matchId}/result`)
+      .then(setResult)
+      .catch(() => setResult(null));
+    return () => clearTimeout(reveal);
+  }, [matchId, s?.status]);
   if (!s)
     return (
       <section className="panel">
@@ -154,8 +168,10 @@ export function Game({
     ...Array.from({ length: 12 }, (_, i) => 12 + i),
   ];
   return (
-    <section className="game">
-      <div className="player">
+    <section className="game game-screen">
+      <div
+        className={`player player-strip glass glass-regular ${s.game.activePlayer === opponent ? 'active-player' : ''}`}
+      >
         <span className="avatar">{avatarEmoji[s.players[opponent].avatar]}</span>
         <div>
           <button
@@ -171,74 +187,90 @@ export function Game({
           </small>
         </div>
         <span className="reaction">{reaction}</span>
-        <button className="subtle" onClick={onClose}>
-          ⌂
+        <strong className={seconds < 10 ? 'urgent timer' : 'timer'}>
+          {s.game.activePlayer === opponent ? `${seconds}s` : ''}
+        </strong>
+        <button
+          className="icon-button subtle"
+          aria-label="Match menu"
+          onClick={() => setMenu(true)}
+        >
+          •••
         </button>
       </div>
-      <div className="game-status">
-        <span>
-          {s.status === 'WAITING_FOR_PLAYERS' ? t.waiting : yourTurn ? t.turn : t.opponent}
-        </span>
-        <strong className={seconds < 10 ? 'urgent' : ''}>{seconds}s</strong>
-      </div>
-      <div className="board" aria-label={s.ruleset === 'LONG_NARDY' ? t.long : t.short}>
-        {displayOrder.map((index, i) => {
-          const physical = viewPhysical(index);
-          const ownPoint = relative(physical);
-          let owner = seat;
-          let amount = board[seat][ownPoint] ?? 0;
-          if (!amount) {
-            owner = opponent;
-            for (let p = 0; p < 24; p++)
-              if (physicalPoint(s.game, opponent, p) === physical) amount = board[opponent][p] ?? 0;
-          }
-          const source = next.some((m) => m.from === ownPoint);
-          const destination = next.some((m) => m.from === selected && m.to === ownPoint);
-          return (
+      <div className="board-scene">
+        <div className="board" aria-label={s.ruleset === 'LONG_NARDY' ? t.long : t.short}>
+          {displayOrder.map((index, i) => {
+            const physical = viewPhysical(index);
+            const ownPoint = relative(physical);
+            let owner = seat;
+            let amount = board[seat][ownPoint] ?? 0;
+            if (!amount) {
+              owner = opponent;
+              for (let p = 0; p < 24; p++)
+                if (physicalPoint(s.game, opponent, p) === physical)
+                  amount = board[opponent][p] ?? 0;
+            }
+            const source = next.some((m) => m.from === ownPoint);
+            const destination = next.some((m) => m.from === selected && m.to === ownPoint);
+            return (
+              <button
+                key={index}
+                className={`point ${i < 12 ? 'top' : 'bottom'} ${i % 2 ? 'dark' : 'light'} ${source ? 'source' : ''} ${destination ? 'destination' : ''} ${selected === ownPoint ? 'selected' : ''} ${recent && ((recent.move.to < 24 && physicalPoint(s.game, recent.player, recent.move.to) === physical) || (typeof recent.move.from === 'number' && physicalPoint(s.game, recent.player, recent.move.from) === physical)) ? 'recent' : ''}`}
+                onClick={() => select(ownPoint)}
+                disabled={!canDraft || (!source && !destination)}
+                aria-label={`${ownPoint + 1}: ${amount}`}
+              >
+                <span className="point-number">{ownPoint + 1}</span>
+                <span className="stack">
+                  {Array.from({ length: Math.min(amount, 5) }, (_, n) => (
+                    <span key={n} className={`checker ${owner === seat ? 'own' : 'enemy'}`}>
+                      {n === 4 && amount > 5 ? amount : ''}
+                    </span>
+                  ))}
+                </span>
+                {destination && <span className="target">●</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div className="board-trays">
+          <div className="off-tray">{board[opponent][24]}</div>
+          {hasBar(board) ? (
             <button
-              key={index}
-              className={`point ${i < 12 ? 'top' : 'bottom'} ${i % 2 ? 'dark' : 'light'} ${source ? 'source' : ''} ${destination ? 'destination' : ''} ${selected === ownPoint ? 'selected' : ''} ${recent && ((recent.move.to < 24 && physicalPoint(s.game, recent.player, recent.move.to) === physical) || (typeof recent.move.from === 'number' && physicalPoint(s.game, recent.player, recent.move.from) === physical)) ? 'recent' : ''}`}
-              onClick={() => select(ownPoint)}
-              disabled={!canDraft || (!source && !destination)}
-              aria-label={`${ownPoint + 1}: ${amount}`}
+              disabled={!next.some((m) => m.from === 'BAR')}
+              className={selected === 'BAR' ? 'active' : ''}
+              onClick={() => select('BAR')}
             >
-              <span className="point-number">{ownPoint + 1}</span>
-              <span className="stack">
-                {Array.from({ length: Math.min(amount, 5) }, (_, n) => (
-                  <span key={n} className={`checker ${owner === seat ? 'own' : 'enemy'}`}>
-                    {n === 4 && amount > 5 ? amount : ''}
-                  </span>
+              {t.bar} {board.bar[seat]}
+            </button>
+          ) : (
+            <span className="structural-bar" aria-hidden="true" />
+          )}
+          <div className="dice">
+            {s.game.diceRoll?.map((die, i) => (
+              <Die key={i} value={die} used={draft.some((move) => move.die === die)} />
+            ))}
+            {s.game.diceRoll?.[0] === s.game.diceRoll?.[1] && (
+              <span className="double-marks">
+                {[0, 1, 2, 3].map((i) => (
+                  <i className={draft.length > i ? 'used' : ''} key={i} />
                 ))}
               </span>
-              {destination && <span className="target">●</span>}
-            </button>
-          );
-        })}
-      </div>
-      <div className="board-trays">
-        {hasBar(board) && (
+            )}
+          </div>
           <button
-            disabled={!next.some((m) => m.from === 'BAR')}
-            className={selected === 'BAR' ? 'active' : ''}
-            onClick={() => select('BAR')}
+            className={next.some((m) => m.from === selected && m.to === 24) ? 'active' : ''}
+            onClick={() => select(24)}
+            disabled={!next.some((m) => m.from === selected && m.to === 24)}
           >
-            {t.bar} {board.bar[seat]}
+            {t.off} {board[seat][24]}/15
           </button>
-        )}
-        <div className="dice">
-          {s.game.diceRoll?.map((die, i) => (
-            <span key={i}>{['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][die]}</span>
-          ))}
         </div>
-        <button
-          className={next.some((m) => m.from === selected && m.to === 24) ? 'active' : ''}
-          onClick={() => select(24)}
-          disabled={!next.some((m) => m.from === selected && m.to === 24)}
-        >
-          {t.off} {board[seat][24]}/15
-        </button>
       </div>
-      <div className="player">
+      <div
+        className={`player player-strip glass glass-regular ${s.game.activePlayer === seat ? 'active-player' : ''}`}
+      >
         <span className="avatar">{avatarEmoji[s.players[seat].avatar]}</span>
         <div>
           <button className="identity-button" onClick={() => onProfile(s.players[seat].accountId)}>
@@ -249,9 +281,12 @@ export function Game({
             {s.players[seat].rating} · {online ? t.connected : t.reconnecting}
           </small>
         </div>
+        <strong className={seconds < 10 ? 'urgent timer' : 'timer'}>
+          {s.game.activePlayer === seat ? `${seconds}s` : ''}
+        </strong>
       </div>
       {!control ? (
-        <div className="panel">
+        <div className="control-overlay glass glass-strong">
           <p>{t.controlLost}</p>
           <button
             onClick={() => {
@@ -263,66 +298,88 @@ export function Game({
           </button>
         </div>
       ) : s.status === 'ACTIVE' ? (
-        <>
-          <div className="actions">
+        <div className="action-dock glass glass-strong">
+          <button
+            className="icon-button"
+            aria-label="Reactions"
+            onClick={() => setReactions(!reactions)}
+          >
+            ☺
+          </button>
+          <button
+            onClick={() => {
+              setDraft(draft.slice(0, -1));
+              setSelected(null);
+            }}
+            disabled={!draft.length}
+          >
+            {t.undo}
+          </button>
+          {s.game.phase === 'WAITING_FOR_ROLL' ? (
             <button
+              className="primary"
+              disabled={!yourTurn}
               onClick={() => {
-                setDraft(draft.slice(0, -1));
-                setSelected(null);
-              }}
-              disabled={!draft.length}
-            >
-              {t.undo}
-            </button>
-            {s.game.phase === 'WAITING_FOR_ROLL' ? (
-              <button
-                className="primary"
-                disabled={!yourTurn}
-                onClick={() => {
-                  feedbackSound('roll');
-                  transport.current?.send('ROLL');
-                }}
-              >
-                {t.roll}
-              </button>
-            ) : (
-              <button
-                className="primary"
-                disabled={!canDraft || !complete}
-                onClick={() => transport.current?.send('TURN', { moves: draft })}
-              >
-                {t.confirm}
-              </button>
-            )}
-          </div>
-          <p className="hint">{t.help}</p>
-          <div className="actions">
-            <button
-              className="subtle danger"
-              onClick={() => {
-                if (window.confirm(t.surrenderConfirm)) transport.current?.send('SURRENDER');
+                feedbackSound('roll');
+                transport.current?.send('ROLL');
               }}
             >
-              {t.surrender}
+              {t.roll}
             </button>
-            {(['WAVE', 'NICE', 'GG'] as const).map((r, i) => (
-              <button
-                key={r}
-                disabled={!online}
-                onClick={() => transport.current?.send('REACTION', { reaction: r })}
-              >
-                {['👋', '👏', '🤝'][i]}
-              </button>
-            ))}
-          </div>
-        </>
+          ) : (
+            <button
+              className="primary"
+              disabled={!canDraft || !complete}
+              onClick={() => transport.current?.send('TURN', { moves: draft })}
+            >
+              {t.confirm}
+            </button>
+          )}
+          {reactions && (
+            <div className="reaction-picker glass glass-strong">
+              {(['WAVE', 'NICE', 'GG'] as const).map((r, i) => (
+                <button
+                  key={r}
+                  disabled={!online}
+                  onClick={() => transport.current?.send('REACTION', { reaction: r })}
+                >
+                  {['👋', '👏', '🤝'][i]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       ) : null}
-      {s.status === 'FINISHED' && (
-        <div className="result panel">
+      {s.status === 'FINISHED' && resultVisible && (
+        <div className="result-sheet glass glass-strong">
           <span className="eyebrow">{message(language, s.finishReason ?? '')}</span>
           <h2>{s.winner === null ? t.uncounted : s.winner === seat ? t.win : t.loss}</h2>
           {s.game.rulesetId === 'backgammon' && s.game.result && (
             <p>{message(language, s.game.result.winClass)}</p>
+          )}
+          <p>{s.mode === 'RANKED' ? t.ranked : 'Unrated'}</p>
+          {result && (
+            <>
+              <div className="result-values">
+                {result.ratingDelta !== null && (
+                  <strong className={result.ratingDelta >= 0 ? 'positive' : 'negative'}>
+                    {result.ratingDelta >= 0 ? '+' : ''}
+                    {result.ratingDelta} rating
+                  </strong>
+                )}
+                <strong>+{result.xpGained} XP</strong>
+              </div>
+              {result.levelAfter > result.levelBefore && (
+                <h3>
+                  {t.level} {result.levelAfter}
+                </h3>
+              )}
+              <ProgressBar
+                label="XP"
+                value={result.progressAfter.xpIntoLevel}
+                max={result.progressAfter.xpRequiredForNextLevel}
+              />
+            </>
           )}
           <button className="primary" onClick={onClose}>
             {t.home}
@@ -330,11 +387,68 @@ export function Game({
           {s.mode !== 'RANKED' && <button onClick={() => onRematch(s.id)}>{t.again}</button>}
         </div>
       )}
+      {!online && <div className="reconnect-overlay glass glass-strong">{t.reconnecting}</div>}
+      {menu && (
+        <BottomSheet label="Match menu" onClose={() => setMenu(false)}>
+          <h2>{s.ruleset === 'LONG_NARDY' ? t.long : t.short}</h2>
+          <p>{s.mode}</p>
+          <ol className="match-help">
+            {rules[language][s.ruleset].map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ol>
+          <button onClick={() => setMenu(false)}>{t.close}</button>
+          {s.status === 'ACTIVE' && (
+            <button
+              className="danger-fill"
+              onClick={() => {
+                setMenu(false);
+                setConfirmSurrender(true);
+              }}
+            >
+              {t.surrender}
+            </button>
+          )}
+        </BottomSheet>
+      )}
+      {confirmSurrender && (
+        <BottomSheet label={t.surrender} onClose={() => setConfirmSurrender(false)}>
+          <h2>{t.surrender}</h2>
+          <p>{t.surrenderConfirm}</p>
+          <button
+            className="danger-fill"
+            onClick={() => {
+              transport.current?.send('SURRENDER');
+              setConfirmSurrender(false);
+            }}
+          >
+            {t.surrender}
+          </button>
+          <button onClick={() => setConfirmSurrender(false)}>{t.cancel}</button>
+        </BottomSheet>
+      )}
       {error && (
         <button className="error" onClick={() => setError('')}>
           {message(language, error)} ×
         </button>
       )}
     </section>
+  );
+}
+function Die({ value, used }: { value: number; used: boolean }) {
+  const pips: Record<number, number[]> = {
+    1: [4],
+    2: [0, 8],
+    3: [0, 4, 8],
+    4: [0, 2, 6, 8],
+    5: [0, 2, 4, 6, 8],
+    6: [0, 2, 3, 5, 6, 8],
+  };
+  return (
+    <span className={`die ${used ? 'consumed' : ''}`} aria-label={`Die ${value}`}>
+      {Array.from({ length: 9 }, (_, i) => (
+        <i className={pips[value]?.includes(i) ? 'pip' : ''} key={i} />
+      ))}
+    </span>
   );
 }

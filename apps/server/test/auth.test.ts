@@ -1,7 +1,13 @@
 import { signedInitData } from './helpers.js';
 import { describe, it, expect } from 'vitest';
 import { verifyTelegram } from '../src/auth.js';
-import { ratingDelta, matchXp, levelFromXp, validateNickname } from '../src/policy.js';
+import {
+  ratingDelta,
+  matchXp,
+  levelFromXp,
+  levelProgressFromXp,
+  validateNickname,
+} from '../src/policy.js';
 describe('authentication and rewards', () => {
   it('validates signature, age, future timestamps and duplicate keys', () => {
     const token = '123456:testing-token-no-real-secret';
@@ -31,5 +37,23 @@ describe('authentication and rewards', () => {
     expect(() => validateNickname('ＡＤＭＩＮ')).toThrow();
     expect(() => validateNickname('https://ad.test')).toThrow();
     expect(validateNickname('Тихий Лис')).toBe('Тихий Лис');
+  });
+  it('returns authoritative progress at and around level boundaries', () => {
+    expect(levelProgressFromXp(0)).toEqual({
+      levelStartTotalXp: 0,
+      nextLevelTotalXp: 100,
+      xpIntoLevel: 0,
+      xpRequiredForNextLevel: 100,
+    });
+    expect(levelProgressFromXp(99).xpIntoLevel).toBe(99);
+    expect(levelProgressFromXp(100)).toEqual({
+      levelStartTotalXp: 100,
+      nextLevelTotalXp: 300,
+      xpIntoLevel: 0,
+      xpRequiredForNextLevel: 200,
+    });
+    const large = levelProgressFromXp(10_000_000);
+    expect(large.xpIntoLevel).toBeGreaterThanOrEqual(0);
+    expect(large.xpIntoLevel).toBeLessThan(large.xpRequiredForNextLevel);
   });
 });

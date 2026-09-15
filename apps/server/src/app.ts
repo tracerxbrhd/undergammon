@@ -23,7 +23,7 @@ import {
 } from './accounts.js';
 import { rows, transaction } from './db.js';
 import { MatchService } from './matches.js';
-import { avatars, validateNickname, levelFromXp } from './policy.js';
+import { avatars, validateNickname, levelFromXp, levelProgressFromXp } from './policy.js';
 import type { Config } from './config.js';
 const uuid = z.uuid();
 export async function buildServer(pool: pg.Pool, config: Config) {
@@ -214,6 +214,40 @@ export async function buildServer(pool: pg.Pool, config: Config) {
       "SELECT m.id,m.ruleset,m.mode,m.finish_reason,m.finished_at,CASE WHEN m.winner IS NULL THEN 'NO_CONTEST' WHEN m.winner=$1 THEN 'WIN' ELSE 'LOSS' END AS result,p.rating_before,p.rating_after,o.account_id AS opponent_id,a.nickname AS opponent FROM matches m JOIN match_players p ON p.match_id=m.id AND p.account_id=$1 JOIN match_players o ON o.match_id=m.id AND o.account_id<>$1 JOIN accounts a ON a.id=o.account_id WHERE m.status='FINISHED' ORDER BY m.finished_at DESC,m.id LIMIT 25 OFFSET $2",
       [id, q.offset],
     );
+  });
+  app.get('/api/matches/:id/result', async (req) => {
+    const accountId = await identity(req);
+    const matchId = uuid.parse((req.params as { id: unknown }).id);
+    const result = (
+      await rows<{
+        xp_before: number | null;
+        xp_after: number | null;
+        xp_gained: number | null;
+        rating_before: number | null;
+        rating_after: number | null;
+      }>(
+        pool,
+        "SELECT p.xp_before,p.xp_after,p.xp_gained,p.rating_before,p.rating_after FROM match_players p JOIN matches m ON m.id=p.match_id WHERE p.match_id=$1 AND p.account_id=$2 AND m.status='FINISHED'",
+        [matchId, accountId],
+      )
+    )[0];
+    if (!result || result.xp_before === null || result.xp_after === null)
+      throw new Error('MATCH_RESULT_NOT_FOUND');
+    return {
+      xpGained: result.xp_gained ?? 0,
+      totalXpBefore: result.xp_before,
+      totalXpAfter: result.xp_after,
+      levelBefore: levelFromXp(result.xp_before),
+      levelAfter: levelFromXp(result.xp_after),
+      progressBefore: levelProgressFromXp(result.xp_before),
+      progressAfter: levelProgressFromXp(result.xp_after),
+      ratingBefore: result.rating_before,
+      ratingAfter: result.rating_after,
+      ratingDelta:
+        result.rating_before === null || result.rating_after === null
+          ? null
+          : result.rating_after - result.rating_before,
+    };
   });
   app.get('/api/leaderboard', async (req) => {
     const id = await identity(req);

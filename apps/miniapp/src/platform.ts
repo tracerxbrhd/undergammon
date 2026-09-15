@@ -4,6 +4,17 @@ interface TelegramWebApp {
   expand(): void;
   openTelegramLink(url: string): void;
   HapticFeedback?: { impactOccurred(style: 'light'): void };
+  viewportStableHeight?: number;
+  safeAreaInset?: { bottom?: number };
+  contentSafeAreaInset?: { bottom?: number };
+  onEvent?(
+    event: 'viewportChanged' | 'safeAreaChanged' | 'contentSafeAreaChanged',
+    listener: () => void,
+  ): void;
+  offEvent?(
+    event: 'viewportChanged' | 'safeAreaChanged' | 'contentSafeAreaChanged',
+    listener: () => void,
+  ): void;
 }
 declare global {
   interface Window {
@@ -26,6 +37,28 @@ export const platform = {
   },
   startParameter: () =>
     new URLSearchParams(window.Telegram?.WebApp.initData ?? '').get('start_param') ?? '',
+  subscribeViewport: (listener: (value: { height: number; safeBottom: number }) => void) => {
+    const webApp = window.Telegram?.WebApp;
+    const update = () =>
+      listener({
+        height: webApp?.viewportStableHeight ?? window.innerHeight,
+        safeBottom: Math.max(
+          webApp?.safeAreaInset?.bottom ?? 0,
+          webApp?.contentSafeAreaInset?.bottom ?? 0,
+        ),
+      });
+    update();
+    window.addEventListener('resize', update);
+    webApp?.onEvent?.('viewportChanged', update);
+    webApp?.onEvent?.('safeAreaChanged', update);
+    webApp?.onEvent?.('contentSafeAreaChanged', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      webApp?.offEvent?.('viewportChanged', update);
+      webApp?.offEvent?.('safeAreaChanged', update);
+      webApp?.offEvent?.('contentSafeAreaChanged', update);
+    };
+  },
 };
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch('/api' + path, {
