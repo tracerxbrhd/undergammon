@@ -8,9 +8,7 @@ export const HEAD = 0;
 export const BEAR_OFF = 24;
 
 export type PlayerId = 'A' | 'B';
-export type RulesetId =
-  | typeof LONG_NARDY_RULESET_ID
-  | typeof BACKGAMMON_RULESET_ID;
+export type RulesetId = typeof LONG_NARDY_RULESET_ID | typeof BACKGAMMON_RULESET_ID;
 export type BotDifficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'EXPERT';
 export type PointIndex = number & { readonly __pointIndex: unique symbol };
 export type CheckerPosition = PointIndex;
