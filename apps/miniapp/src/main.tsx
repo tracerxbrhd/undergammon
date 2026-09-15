@@ -92,8 +92,8 @@ function App() {
       for (const edge of ['top', 'right', 'bottom', 'left'] as const) {
         const environmentInset = `env(safe-area-inset-${edge}, 0px)`;
         root.setProperty(`--app-safe-${edge}`, `max(${safeArea[edge]}px, ${environmentInset})`);
-        // Telegram content insets describe the usable content rectangle. Older
-        // clients can omit or zero them, so fall back to the device safe inset.
+        // The platform adapter supplies the effective Telegram content top;
+        // other edges continue to fall back to the device safe inset.
         const contentInset = contentSafeArea[edge] || safeArea[edge];
         root.setProperty(
           `--app-content-safe-${edge}`,

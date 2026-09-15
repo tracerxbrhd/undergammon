@@ -35,6 +35,23 @@ export interface PlatformLayout {
   safeArea: LayoutInsets;
   contentSafeArea: LayoutInsets;
 }
+
+export const TELEGRAM_TOP_CHROME_FALLBACK = 72;
+
+export function effectiveContentSafeTop(
+  isTelegram: boolean,
+  safeAreaTop: number,
+  contentSafeAreaTop: number,
+): number {
+  const safeTop = Math.max(0, safeAreaTop);
+  const contentTop = Math.max(0, contentSafeAreaTop);
+
+  if (isTelegram && contentTop < TELEGRAM_TOP_CHROME_FALLBACK) {
+    return Math.max(safeTop, TELEGRAM_TOP_CHROME_FALLBACK);
+  }
+
+  return Math.max(safeTop, contentTop);
+}
 declare global {
   interface Window {
     Telegram?: { WebApp: TelegramWebApp };
@@ -71,6 +88,11 @@ export const platform = {
         safeArea: insets(webApp?.safeAreaInset),
         contentSafeArea: insets(webApp?.contentSafeAreaInset),
       };
+      layout.contentSafeArea.top = effectiveContentSafeTop(
+        Boolean(webApp),
+        layout.safeArea.top,
+        layout.contentSafeArea.top,
+      );
       const serialized = JSON.stringify(layout);
       if (serialized !== previous) {
         previous = serialized;
