@@ -1,6 +1,6 @@
 # UNDERGAMMON — Product Foundation
 
-Status: accepted discovery decisions for interview questions 1–2.
+Status: accepted discovery decisions for interview questions 1–2. Later product decisions supersede the original AI-first-release assumption: current Season 0 is PvP-first and AI is intentionally deferred. Later documents also define the concrete rating/economy policies now used by the implementation.
 
 ## 1. Product identity and success criteria
 
@@ -15,20 +15,22 @@ Core value proposition:
 - group/inline challenges through `@UndergammonBot` are a desirable later extension, but not the canonical MVP flow;
 - the Mini App must look and feel like a polished game, not a technical web page embedded in Telegram.
 
-Primary gameplay pillars:
+Primary gameplay pillars from discovery:
 
-1. Single-player against AI.
-2. Private games with friends.
-3. Competitive PvP matchmaking with player ratings.
+1. Private games with friends.
+2. Competitive PvP matchmaking with player ratings.
+3. Single-player against AI as a deferred expansion rather than current Season 0 scope.
 4. Tournaments are a post-MVP competitive extension, not an MVP requirement.
 
-The product is considered ready for a first public release when:
+The original public-release acceptance criteria were:
 
 - a real match works reliably between Telegram on Android and Telegram on iPhone, including synchronization and reconnect;
 - the primary stakeholder who originally requested the product considers it convenient and useful for real play;
 - the visual presentation is attractive and feels finished;
 - the principal gameplay flows work reliably without critical defects;
 - monetization is not a release gate for the first version.
+
+Season 0 has since been deployed and real Telegram PvP has been exercised in production. Broader device/player coverage remains useful; see `IMPLEMENTATION_STATUS.md` for current status rather than treating this discovery document as a release checklist.
 
 Product priority: gameplay quality and UX come before early monetization.
 
@@ -43,12 +45,13 @@ The project must not invent simplified house rules merely to make implementation
 
 Rulesets and match modes are separate concepts. Ranked and casual play do not use different game rules.
 
-Initial modes:
+Current Season 0 playable modes:
 
-- AI;
 - casual PvP;
 - ranked PvP;
 - private PvP.
+
+AI remains a separately documented deferred mode.
 
 The preferred Telegram product format is intentionally fast:
 
@@ -65,7 +68,7 @@ Rating changes are skill-based and depend on the relative rating/strength of bot
 
 Win streaks must never directly multiply or add rating gains. Rating is intended to measure competitive strength, not progression rewards.
 
-The exact rating algorithm is intentionally not selected yet; Elo/Glicko-like approaches will be evaluated later.
+The discovery phase intentionally left the algorithm open. `05-matchmaking-rating-seasons.md` and the current server policy define the concrete Season 0 behavior.
 
 ## Win streak progression
 
@@ -74,20 +77,20 @@ Competitive win streaks are a separate progression system from MMR.
 Current direction:
 
 - ranked PvP wins may advance a competitive win streak;
-- AI matches must not farm the competitive streak;
+- AI matches must not farm the competitive streak if AI is introduced later;
 - defeat resets the current streak;
-- milestone streaks such as 3, 5 and 10 wins may grant guaranteed chests and/or internal currency;
+- milestone streaks such as 3, 5 and 10 wins may grant guaranteed progression/economy rewards;
 - streak rewards do not modify the rating formula.
 
 Reward chests are not intended to be gambling-style loot boxes. Rewards should be deterministic or otherwise clearly guaranteed/understandable to the player. Random paid loot boxes are not part of the product direction.
 
 ## Internal currency and future monetization
 
-UNDERGAMMON may introduce an internal soft currency (for example, coins) earned through gameplay and progression. Potential future uses include cosmetic boards, checkers, dice, profile presentation and other non-competitive customization.
+UNDERGAMMON uses Coins as its internal soft currency, earned through current Season 0 progression/reward flows and spendable on curated permanent cosmetics in the Store.
 
 Hard product rule: purchasable or earnable progression must not provide gameplay advantages in competitive matches.
 
-Monetization is deliberately deferred from the first release gate. Its detailed model will be designed in the dedicated monetization discovery block, with Telegram-native payment constraints considered at that time.
+Real-money monetization remains deferred. There is no paid currency or Telegram Stars integration in Season 0; see `10-economy-and-cosmetics.md` for the current economy contract.
 
 ## Architectural consequences already accepted
 
@@ -97,22 +100,10 @@ Monetization is deliberately deferred from the first release gate. Its detailed 
 - A match/lobby is created when the challenge is accepted.
 - The backend must atomically prevent the same challenge from being accepted multiple times.
 - Online gameplay remains server-authoritative: clients never decide authoritative dice, winner, rating or match state.
-- Android-to-iPhone real-device interoperability is a release acceptance criterion for the Telegram Mini App.
+- Android-to-iPhone real-device interoperability remains an important Telegram Mini App quality target.
 
-## Deferred decisions
+## Deferred / later-decision topics from discovery
 
-The following are intentionally unresolved and will be addressed in later interview blocks:
+The original discovery phase deferred detailed decisions about bot/Mini App navigation, timers, profiles/leaderboards, rating, rewards/economy, notifications, AI, history, moderation, localization, infrastructure and tournaments. Those topics now have dedicated product/architecture documents.
 
-- detailed bot vs Mini App navigation;
-- timers and disconnect policy;
-- social profiles and leaderboards;
-- exact rating algorithm;
-- exact streak reward economy;
-- shop/cosmetic catalog and Telegram Stars monetization;
-- notifications;
-- AI strength/difficulties;
-- replay/history retention;
-- moderation/admin tooling;
-- localization;
-- infrastructure and deployment;
-- tournaments.
+Do not use this section as a statement that those systems are absent. Current implementation state is documented in `IMPLEMENTATION_STATUS.md`.
