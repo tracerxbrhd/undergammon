@@ -236,7 +236,23 @@ The accepted structural direction remains:
 
 The board geometry stays stable throughout the match. Bearing-off areas do not appear dynamically in a way that resizes the board.
 
-The exact Board Scene aspect ratio, visual proportions and compression rules for checker stacks remain adjustable during implementation/device testing.
+The exact Board Scene aspect ratio and fine visual proportions remain adjustable during implementation/device testing.
+
+## Checker stack presentation
+
+Checker stacks use one stable presentation rule for both rulesets and for all Checker Sets.
+
+Accepted baseline:
+
+- stacks of up to five checkers are shown as individual physical checker discs;
+- stacks larger than five keep the same geometry instead of extending indefinitely along the point;
+- the visible stack is compressed after the fifth checker and displays a compact count badge for the full stack count;
+- the whole visible stack remains one consistent touch target for source selection;
+- the count indicator is application-controlled UI and must remain readable across all Checker Sets;
+- a Checker Set may style the checker discs but may not change the stack algorithm, spacing contract, touch target, or count readability;
+- bar and bearing-off occupancy follow the same principle: large counts must not cause Board Scene reflow.
+
+This rule is especially important for Long Nardy, where large stacks are normal gameplay and must remain readable on compact phones.
 
 ## Explicit non-goals for the UX/UI v2 refactor
 
