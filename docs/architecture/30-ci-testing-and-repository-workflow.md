@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for the UNDERGAMMON Season 0 development baseline.
+Accepted and implemented as the UNDERGAMMON Season 0 development baseline.
 
 ## Repository workflow
 
@@ -24,17 +24,17 @@ External contributors must use pull requests.
 
 CI runs automatically for pull requests and for pushes to `main`.
 
-The baseline pipeline should include:
+The current verification pipeline includes:
 
 - dependency installation with the locked pnpm version;
-- formatting verification;
-- linting;
+- production/workspace build;
+- ESLint;
+- Prettier formatting verification;
 - strict TypeScript type checking;
-- unit tests;
-- game-engine regression tests;
-- game-engine property-based and determinism tests;
-- backend integration tests that require PostgreSQL;
-- production builds for deployable applications and shared packages.
+- unit, game-engine regression/property/determinism, and backend integration tests against isolated PostgreSQL;
+- Playwright browser E2E;
+- production dependency audit;
+- Docker Compose configuration validation.
 
 A failed CI run on `main` is treated as a defect to fix promptly, but it does not technically prevent the owner from performing an emergency direct change.
 
@@ -60,15 +60,30 @@ Primarily used for the deterministic game engine and rule invariants.
 
 ### Integration tests
 
-Used for database transactions, authentication boundaries, matchmaking concurrency, match completion, rating/economy atomicity, and HTTP/WebSocket server behavior.
+Used for database transactions, authentication boundaries, matchmaking concurrency, match completion, rating/economy atomicity, cosmetic ownership/equipment, Daily Reward behavior, and HTTP/WebSocket server behavior.
 
-PostgreSQL integration tests should use an isolated disposable database environment rather than mocks for persistence-critical behavior.
+PostgreSQL integration tests use an isolated disposable database environment rather than mocks for persistence-critical behavior. Tests that truncate data must never point at production.
 
 ### End-to-end tests
 
-Browser-level automated tests may cover stable Mini App flows where valuable, but Season 0 release still requires the previously defined real-device Android Telegram versus iPhone Telegram acceptance pass.
+Playwright covers stable browser-level Mini App flows, including the Update 1 Store/purchase/equip/Profile/Default path.
 
-Automated browser tests do not replace that release gate.
+Automated E2E complements rather than replaces real Telegram acceptance. Production functionality has been exercised with real Telegram accounts; broader Android/iOS Telegram device coverage remains a continuing quality activity rather than an undeployed-release blocker.
+
+## Update 1 verification baseline
+
+The final Update 1 verification PR (#11) passed:
+
+- build;
+- lint;
+- format check;
+- typecheck;
+- 78 unit/integration tests;
+- Playwright E2E;
+- production dependency audit;
+- Docker Compose validation.
+
+Exact test counts may grow; this is a historical verified baseline, not a permanent expectation that the suite must contain exactly 78 tests.
 
 ## Merge strategy
 
@@ -78,7 +93,7 @@ Merge commits or rebases remain available when they are more appropriate; the pr
 
 ## Dependency and repository hygiene
 
-The repository should maintain:
+The repository maintains or expects:
 
 - a committed pnpm lockfile;
 - automated dependency update visibility;
@@ -93,6 +108,8 @@ CI and deployment are separate concerns.
 
 Passing CI never automatically deploys production. Production deployment remains a manually triggered GitHub Actions workflow as defined in the hosting and deployment architecture.
 
+The deployment workflow verifies the selected commit before the VPS update, applies migrations, updates the Docker Compose services and checks the public health endpoint.
+
 ## Guiding principle
 
-UNDERGAMMON should have enough automated verification that game-rule and persistence regressions are difficult to introduce accidentally, while repository process remains lightweight enough for efficient solo development.
+UNDERGAMMON should have enough automated verification that game-rule, persistence and economy regressions are difficult to introduce accidentally, while repository process remains lightweight enough for efficient solo development.

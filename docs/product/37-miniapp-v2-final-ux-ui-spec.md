@@ -1,16 +1,18 @@
 # 37 — Mini App v2 Final UX/UI Specification
 
-Status: accepted final UX/UI v2 baseline, implementation pending
+Status: accepted final UX/UI v2 baseline, substantially implemented; Update 1 evolved the primary shell to five destinations.
 
 ## Purpose
 
-This document is the consolidated implementation-level conclusion for UNDERGAMMON Telegram Mini App v2. It does not replace the detailed product documents; it defines the final visual/component/responsive rules that tie them together and should be treated as the default implementation contract for the frontend refactor.
+This document is the consolidated implementation-level conclusion for UNDERGAMMON Telegram Mini App v2. It does not replace the detailed product documents; it defines the final visual/component/responsive rules that tie them together and remains the default implementation contract for continued frontend polish.
 
 The guiding visual formula is:
 
 > Dark Liquid Glass game shell floating above a warm physical backgammon board, with restrained moss accents and precise competitive typography.
 
 The product must feel like a modern digital board game, not a casino UI, cyberpunk dashboard, generic Telegram form, or mobile RPG.
+
+This status does not mean every detailed visual acceptance point below is complete. It distinguishes the implemented v2 foundation from remaining polish/device-feedback work.
 
 ## Layer model
 
@@ -227,10 +229,10 @@ Rules:
 
 Normal AppShell screens use one fixed safe-area-aware bottom navigation.
 
-Current structure:
+Current implemented structure:
 
 ```text
-Rankings      PLAY      Profile
+Store   Cosmetics   PLAY   Rankings   Profile
 ```
 
 Rules:
@@ -238,9 +240,11 @@ Rules:
 - Play may be raised by roughly 4–6px relative to secondary icons;
 - all items remain part of one visual family;
 - no visible empty future slots;
-- navigation layout is config-driven and supports up to five primary destinations;
+- navigation layout is config-driven and supports the current five primary destinations;
 - no horizontal scrolling;
 - content reserves navigation height and never renders underneath it.
+
+Store and Cosmetics were added in Update 1. Their presence does not imply a broad cosmetic catalog: the current functional Store/equipment slice is intentionally narrow around Profile Frames.
 
 Target shell height before bottom safe-area is approximately 64–72px.
 
@@ -484,6 +488,7 @@ Do not create an abstract design-system package or generic cross-product framewo
 
 The following UX blocks are already accepted and must be implemented consistently with this visual system:
 
+- Store and Cosmetics as real primary destinations, currently focused on the Profile Frame vertical slice;
 - Play/Home setup directly on Home;
 - visible Casual/Ranked and Long Nardy/Backgammon selection;
 - focused matchmaking with no second accept step;
@@ -505,15 +510,17 @@ Refer to product docs 21–36 for detailed behavior.
 Do not add:
 - new game rules;
 - broad backend redesign;
-- speculative Store/Social/Events implementation;
+- speculative Social/Events implementation or broad cosmetic-catalog/monetization expansion;
 - AI placeholders;
 - replay system;
 - social graph;
-- multiple themes;
+- multiple non-default Board Themes as completed content;
 - heavy analytics/admin dashboards;
 - mandatory fullscreen;
 - runtime arbitrary cosmetic HTML/CSS;
 - decorative glass on every content row/card.
+
+Store/Cosmetics are no longer speculative: Update 1 implemented the baseline navigation, purchase, permanent ownership and equipment flow. This does not change the non-goal against inventing unimplemented broader content.
 
 ## Final acceptance criteria
 
@@ -534,12 +541,12 @@ The v2 implementation is acceptable when:
 - reconnect/control-lost/result states preserve the board instead of replacing it;
 - profile XP progress and result XP progression use one authoritative/shared progression model;
 - current backend/game-engine tests continue to pass;
-- real Telegram E2E is re-tested Android ↔ iPhone;
-- natural bearing-off victory is manually completed and verified for both Long Nardy and Classic Backgammon before Season 0 release acceptance.
+- real Telegram E2E continues to be exercised across representative Android/iPhone-class layouts as the UI evolves;
+- natural bearing-off victory remains manually verified for both Long Nardy and Classic Backgammon as gameplay UX changes.
 
 ## Final implementation principle
 
-The frontend refactor should optimize for a polished playable Telegram game, not for framework purity or speculative platform generality.
+The frontend should optimize for a polished playable Telegram game, not for framework purity or speculative platform generality.
 
 Where visual ambition conflicts with readability, stable geometry, authoritative gameplay, low-end Android performance or touch usability, gameplay quality wins.
 

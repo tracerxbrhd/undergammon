@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted product decisions from interview question 10.
+Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and first Profile Frame Store/equipment vertical slice are now implemented; broader cosmetic categories remain expansion scope.
 
 ## Currency
 
@@ -10,34 +10,56 @@ Accepted product decisions from interview question 10.
 - Do not introduce premium gems, season tokens, or other parallel currencies for the initial product.
 - Coins must never provide gameplay advantage.
 - Coins and cosmetics are outside the authoritative rules of Long Nardy and Backgammon.
+- Coin balance changes are server-authoritative and recorded through the append-only Coin ledger.
 
 ## Season 0 / Testing Period
 
 - During Season 0, real-money purchases are disabled.
-- Players can earn and spend Coins on cosmetics.
-- Economy constants such as prices and reward amounts are intentionally not fixed before telemetry exists.
-- Season 0 is used to measure earning rates, purchase rates, play frequency, and inflation before monetization is enabled.
+- There is no Telegram Stars integration or paid currency.
+- Players earn Coins through the implemented reward rules and can spend Coins on curated permanent cosmetics in the Store.
+- Season 0 remains the period for measuring earning rates, purchase rates, play frequency and inflation before any monetization decision.
+
+## Current Season 0 implementation
+
+The implemented Update 1 vertical slice is:
+
+`Daily Reward / ranked Coins -> Store -> permanent ownership -> equipment -> presentation`
+
+Current content/contracts are intentionally narrow:
+
+- functional cosmetic slot: `PROFILE_FRAME`;
+- non-purchasable `Default` Profile Frame;
+- Season 0 Tester Profile Frame, granted server-side for Season 0 participation;
+- Bronze Profile Frame, purchasable for 150 Coins;
+- Store purchase does not auto-equip;
+- equipment is validated against backend ownership and slot compatibility;
+- equipped Profile Frames are exposed through trusted profile/match contracts and rendered on identity surfaces.
+
+Board Themes, Checker Sets, Dice Skins, Reaction Packs and a large cosmetic catalog remain future expansion work even though the Board Scene already has presentation boundaries for those slots.
 
 ## Future Telegram Monetization
 
-- Telegram Stars can be introduced after Season 0.
-- Preferred direction is `Stars -> Coins -> cosmetics`, keeping one internal pricing currency.
-- This is not an MVP requirement and should not be implemented until the soft-currency economy has been tested.
+- Telegram Stars may be considered after Season 0.
+- Preferred direction remains `Stars -> Coins -> cosmetics`, keeping one internal pricing currency if monetization is introduced.
+- This is not a Season 0 requirement and must not be implemented until the soft-currency economy has been evaluated.
 - No paid gameplay advantages, rerolls, improved dice, hints in Ranked, rating boosts, or other pay-to-win mechanics.
 
 ## Reward Sources
 
-Primary repeatable Coin sources:
+Implemented repeatable Coin sources:
 
 - Ranked PvP victories;
 - competitive win-streak milestones;
+- Daily Reward claims.
+
+Future/optional sources may include:
+
 - seasonal placement rewards;
-- daily login rewards;
-- future achievements and events.
+- achievements and events.
 
 The following modes do not award Coins by default:
 
-- AI matches;
+- AI matches if AI is implemented later;
 - Casual matchmaking;
 - Private/friend matches.
 
@@ -45,39 +67,41 @@ This prevents trivial farming through bots or coordinated private games.
 
 ## Chests
 
+Chests remain a product-design concept rather than required current content.
+
 - Chests are a presentation layer for rewards, not a paid loot-box system.
-- Initial chests contain predetermined or otherwise explicitly transparent rewards.
+- Initial chests, if introduced, contain predetermined or otherwise explicitly transparent rewards.
 - Chests are not purchasable random gambling containers.
-- Example use: a win-streak milestone awards a chest containing a known amount of Coins or another known reward.
 - This can be revisited only as a separate future product decision.
 
 ## Daily Rewards
 
-Use a 7-day progressive reward cycle.
-
-- Day 1 starts with a small reward.
-- Rewards increase through the cycle.
-- Day 7 provides a large reward or chest.
-- After Day 7 the cycle starts again.
-- A player must explicitly claim the daily reward.
-- Only one reward can be claimed per Game Account per eligible calendar day.
-- Missing a day does not reset progress.
-- Missed rewards are not granted retroactively.
-
-Example:
+The implemented Daily Reward uses a 7-day progressive Coin cycle:
 
 ```text
-Day 1 -> reward
-Day 2 -> larger reward
-...
-Day 7 -> major reward / chest
+Day 1 -> 5 Coins
+Day 2 -> 5 Coins
+Day 3 -> 10 Coins
+Day 4 -> 10 Coins
+Day 5 -> 15 Coins
+Day 6 -> 20 Coins
+Day 7 -> 35 Coins
 ```
+
+Current rules:
+
+- a player explicitly claims the reward;
+- only one reward can be claimed per Game Account per UTC calendar day;
+- progress advances through the seven-day cycle and wraps after Day 7;
+- missing a day does not reset cycle progress;
+- missed rewards are not granted retroactively;
+- claim insertion and Coin crediting are server-authoritative and transactional.
 
 ## Cosmetic Ownership
 
 Cosmetics are permanently owned once acquired.
 
-Initial cosmetic categories:
+Accepted cosmetic categories include:
 
 - Board Theme;
 - Checker Set;
@@ -86,7 +110,9 @@ Initial cosmetic categories:
 - Reaction Pack;
 - future visual effects where appropriate.
 
-Initial product rules:
+Only Profile Frame is a functional ownership/equipment slot in the current Update 1 application contract/catalog.
+
+Product rules:
 
 - no rentals;
 - no durability;
@@ -94,33 +120,35 @@ Initial product rules:
 - no player-to-player trading;
 - no duplicate ownership of the same cosmetic.
 
-If a reward would grant an already-owned item, the reward system must prevent the duplicate or substitute an appropriate alternative such as Coins.
+If a future reward would grant an already-owned item, the reward system must prevent the duplicate or apply a separately accepted substitution policy.
 
 ## Cosmetic Slots
 
-Each cosmetic category is independently equipped.
+Each implemented cosmetic category is equipped independently.
 
-Buying or receiving a cosmetic does not need to auto-equip it. The item is added to the player's collection and can then be selected.
+Buying or receiving a cosmetic does not auto-equip it. The item is added to the player's collection and can then be selected. `Default` remains a valid explicit fallback.
 
 ## Hybrid Match Presentation
 
-A match visually combines cosmetics from both participants instead of rendering a fully local-only skin.
+A future expanded match presentation combines cosmetics from both participants instead of rendering a fully local-only skin. The existing resolver/BoardScene boundary already preserves owner identity, but non-Profile-Frame slots currently resolve to `Default`.
 
 ### Board themes
 
-- Each player's side of the board uses that player's equipped Board Theme.
+- Each player's board-owned region uses that player's equipped Board Theme.
 - Board themes must be designed as composable assets so two different themes can coexist in one match.
-- Shared or neutral board elements should use a deterministic compatible presentation.
-- `Default` is a valid full theme and acts as the fallback when a player has no custom board equipped.
+- Shared or neutral board elements use a deterministic compatible presentation.
+- `Default` is the fallback when a player has no custom board equipped.
 - A player's missing cosmetic must not cause the opponent's cosmetic to overwrite that player's identity.
 
 Conceptually:
 
 ```text
-Opponent side -> opponent Board Theme
-Shared center  -> neutral / deterministic composition
-Player side   -> player Board Theme
+Opponent-owned region -> opponent Board Theme
+Shared center          -> neutral / deterministic composition
+Player-owned region   -> player Board Theme
 ```
+
+Do not model a future Board Theme as one global `board-theme-*` class for the whole match.
 
 ### Checker sets
 
@@ -129,30 +157,25 @@ Player side   -> player Board Theme
 
 ### Dice skins
 
-- The visible dice pair combines both players' cosmetics: one die represents the local player's Dice Skin and the other represents the opponent's Dice Skin.
+- The visible dice pair combines both players' presentation slots: one die represents the local player's Dice Skin and the other the opponent's Dice Skin.
 - `Default` is used when a participant has no custom Dice Skin.
 - Every Dice Skin must preserve excellent pip/value readability. Cosmetic rarity can never reduce gameplay clarity.
 
 ### Profile cosmetics and reactions
 
-- Profile Frame, avatar, and reaction cosmetics remain personalized to their owner and are visible to the opponent where applicable.
+- Profile Frame belongs to its owner and is the currently implemented cosmetic presentation.
+- Future avatar/reaction cosmetics remain personalized to their owner and visible to the opponent only where the product contract permits.
 
 ## Cosmetic Loading
 
 - Do not add a separate pre-match cosmetic preview screen.
-- Hybrid cosmetics are resolved and rendered automatically while the game scene loads.
+- Match cosmetics are resolved and rendered automatically while the game scene loads.
 - Match start must stay fast and must not require an additional confirmation step.
+- Missing/unsupported presentation falls back safely to `Default`.
 
 ## Rarity and Exclusivity
 
-Cosmetics may have a visual/economic rarity classification such as:
-
-- Common;
-- Rare;
-- Epic;
-- Legendary.
-
-Rarity has no gameplay properties.
+Cosmetics may have a visual/economic rarity classification such as Common, Rare, Epic or Legendary. Rarity has no gameplay properties.
 
 Some cosmetics may have exclusive acquisition sources, for example:
 
@@ -161,46 +184,37 @@ Some cosmetics may have exclusive acquisition sources, for example:
 - Top 100 seasonal cosmetics;
 - anniversary/event cosmetics.
 
-Exclusive cosmetics do not need to appear in the regular store and may remain permanently unavailable after their source event ends.
+Exclusive cosmetics do not need to appear in the regular Store and may remain unavailable after their source event ends.
 
 ## Store
 
-The first store is a simple persistent catalog grouped by cosmetic category.
+The implemented Store is a simple persistent server-owned catalog. The current purchasable product is the Bronze Profile Frame for 150 Coins.
 
-Example sections:
-
-```text
-Boards
-Checkers
-Dice
-Frames
-Reactions
-```
-
-Store principles for the initial release:
+Store principles remain:
 
 - no daily item rotation;
 - no countdown-based FOMO;
 - no personalized offers;
 - no artificial scarcity for ordinary catalog items;
 - owned items are clearly marked;
-- purchased items can be equipped from the player's collection;
-- exclusive seasonal/event cosmetics show their acquisition source instead of a Coin price.
+- purchases are authoritative and atomic;
+- purchased items are equipped separately from the player's Cosmetics collection;
+- exclusive seasonal/event cosmetics may show their acquisition source rather than a Coin price.
 
-Rotating stores or other advanced merchandising can be considered only after the cosmetic catalog is large enough to justify them.
+As additional functional cosmetic slots are added, the catalog may be grouped into Boards, Checkers, Dice, Frames and Reactions. Those categories must not be documented as current completed Store content before they exist.
 
 ## Balancing
 
-Exact Coin amounts, item prices, win rewards, streak rewards, daily rewards, and seasonal payouts are not fixed yet.
+Season 0 policy values are now concrete code, not merely placeholders. Current reward and price constants must be changed through normal reviewed application changes rather than duplicated into client-authoritative logic.
 
-They should be tuned during Season 0 using real telemetry. The goal is to avoid both:
+Telemetry and tester feedback may still justify tuning. The balancing goal remains to avoid both:
 
 - excessive inflation where cosmetics become trivial to acquire;
 - excessive grind where normal players cannot reasonably obtain cosmetic rewards.
 
 ## Non-goals
 
-The initial economy does not include:
+The current economy does not include:
 
 - pay-to-win;
 - paid random loot boxes;
@@ -210,5 +224,5 @@ The initial economy does not include:
 - marketplace/trading;
 - rentals;
 - cosmetic durability;
-- store rotation/FOMO;
+- Store rotation/FOMO;
 - real-money purchases during Season 0.

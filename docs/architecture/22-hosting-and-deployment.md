@@ -1,17 +1,17 @@
 # Hosting and Deployment
 
 ## Status
-Accepted for Season 0.
+Accepted for Season 0 and in production.
 
 ## Production topology
 
-UNDERGAMMON will initially run on a single VPS using Docker Compose.
+UNDERGAMMON currently runs on a single VPS using Docker Compose.
 
 Public origin:
 
 - `https://undergammon.tracerxbrhd.ru`
 
-Recommended routing:
+Current routing:
 
 - `/` -> Mini App static assets
 - `/api/*` -> backend HTTP API
@@ -21,7 +21,7 @@ Recommended routing:
 
 Caddy terminates HTTPS and proxies traffic to services inside the Docker network.
 
-PostgreSQL must not expose port `5432` publicly. It is reachable only from internal application services.
+PostgreSQL does not expose port `5432` publicly. It is reachable only from internal application services.
 
 ## Environments
 
@@ -30,13 +30,13 @@ The project uses two operational environments:
 - local development;
 - production.
 
-There is no dedicated staging environment. This is the default policy while the project remains small and releases are manually controlled. A staging environment may be reconsidered only if an objective operational need appears later.
+There is no dedicated staging environment. This is the current policy while the project remains small and releases are manually controlled. A staging environment may be reconsidered only if an objective operational need appears later.
 
 ## Docker
 
-Docker is part of the repository and deployment model from the beginning.
+Docker is part of the repository and production deployment model.
 
-The repository should contain:
+The repository contains:
 
 - Dockerfiles for deployable applications;
 - `compose.yaml`;
@@ -50,23 +50,19 @@ Production credentials, Telegram bot tokens, database passwords, webhook secrets
 
 ## Production deployment
 
-CI runs automatically on pull requests and pushes and should include at least:
-
-- lint;
-- typecheck;
-- tests;
-- build.
+CI runs automatically on pull requests and pushes to `main` and includes the repository verification pipeline for build, lint, format, typecheck, tests/E2E, production dependency audit and Compose validation.
 
 Production deployment is not triggered automatically by every merge to `main`.
 
-A manual GitHub Actions workflow is used to deploy production. Conceptually it performs:
+A manual GitHub Actions workflow is used to deploy production. It:
 
-1. obtain/build the intended application version;
-2. connect to the VPS;
-3. update the Docker deployment;
-4. run pending database migrations;
-5. start/update services with Docker Compose;
-6. verify healthchecks.
+1. runs the verification workflow for the selected commit;
+2. connects to the VPS;
+3. checks out the selected commit;
+4. builds the Docker deployment;
+5. starts PostgreSQL and runs pending database migrations;
+6. starts/updates services with Docker Compose;
+7. verifies the public health endpoint.
 
 Manual deployment reduces the chance of unexpectedly restarting a realtime game server while active matches exist.
 
@@ -85,16 +81,14 @@ Rules:
 
 ## Backups
 
-Automated off-site PostgreSQL backups are intentionally not required for the initial Season 0 launch.
+Automated off-site PostgreSQL backups remain intentionally deferred for the current Season 0 operational baseline.
 
-The architecture must not prevent adding them later, but they are deferred while early beta data is considered recoverable/non-critical.
-
-For Season 0:
+The architecture does not prevent adding them later. For Season 0:
 
 - PostgreSQL data lives in a persistent Docker volume;
-- the operator may create manual `pg_dump` backups and store them outside the VPS;
+- the operator can create manual `pg_dump` backups and store them outside the VPS;
 - backup files must never be committed to the repository;
-- documented manual backup and restore procedures should exist before production use.
+- manual backup and restore procedures are documented in `README.md`.
 
 Loss of the VPS or its storage can still result in data loss until off-site automated backups are introduced. This risk is explicitly accepted for early testing.
 
@@ -102,4 +96,4 @@ Loss of the VPS or its storage can still result in data loss until off-site auto
 
 Do not introduce Kubernetes, Redis, queues, service discovery or multiple production hosts preemptively.
 
-The public hostname should remain stable even if components are moved to separate infrastructure later. The single-VPS design is therefore an operational starting point, not a domain or protocol constraint.
+The current backend/realtime deployment is intentionally single-instance. The public hostname should remain stable even if components are moved to separate infrastructure later. The single-VPS design is therefore the current operational model, not a domain or protocol constraint.

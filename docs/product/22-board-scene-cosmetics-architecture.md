@@ -1,10 +1,10 @@
 # 22 — Board Scene and Cosmetic Architecture
 
-Status: accepted UX/UI v2 architecture baseline, implementation pending
+Status: accepted UX/UI v2 architecture baseline; initial resolver/BoardScene integration and trusted Profile Frame presentation are implemented.
 
 ## Purpose
 
-This document defines how the UNDERGAMMON Board Scene must be structured so future board skins and other cosmetics can be added without rewriting gameplay UI.
+This document defines how the UNDERGAMMON Board Scene must be structured so board skins and other cosmetics can be added without rewriting gameplay UI.
 
 It complements:
 
@@ -14,11 +14,11 @@ It complements:
 
 The central rule is:
 
-> Cosmetics may change presentation, but must never change board geometry, gameplay semantics, interaction hitboxes, move legality or competitive readability.
+> Cosmetics may change presentation, but must never change board geometry, gameplay semantics, interaction hitboxes, move legality, checker identity, dice authority, game state or competitive readability.
 
 ## Default appearance is the first skin
 
-The initial Season 0 visual design must not be implemented as a collection of hard-coded special cases.
+The Season 0 visual design must not be implemented as a collection of hard-coded special cases.
 
 `Default` is treated as the first implementation of every cosmetic slot:
 
@@ -28,7 +28,7 @@ The initial Season 0 visual design must not be implemented as a collection of ha
 - Default Profile Frame;
 - Default Reaction Pack.
 
-This does not require implementing the Store, inventory/economy UI or monetization in UX/UI v2. It only requires the rendering architecture to use the same cosmetic boundary that future owned/equipped cosmetics will use.
+Update 1 has since implemented Store, permanent ownership and equipment for the `PROFILE_FRAME` slot. The same rendering boundary remains important for slots that are not yet functional content: Board Theme, Checker Set, Dice Skin and Reaction Pack currently fall back to `Default`.
 
 ## Geometry and appearance are separate concerns
 
@@ -93,7 +93,7 @@ The accepted product direction from `10-economy-and-cosmetics.md` remains author
 
 ### Board Theme
 
-The Board Scene must be composable by player ownership rather than implemented as one inseparable background image.
+The Board Scene must be composable by player ownership rather than implemented as one inseparable background image or one global `board-theme-*` class for the whole match.
 
 Conceptually:
 
@@ -107,11 +107,15 @@ The implementation must map ownership from authoritative player/seat identity th
 
 A board theme therefore needs composable visual regions/tokens rather than a single bitmap that assumes both halves always use the same skin.
 
+Board Theme remains future cosmetic content; the current resolver deliberately returns `Default` for both owner regions.
+
 ### Checker Set
 
 Each participant's checkers use that participant's equipped Checker Set.
 
 Checker cosmetics must fit a common checker bounding box and must not change stack spacing, hit area or effective checker size.
+
+The owner-aware Checker Set hooks exist in BoardScene, but current presentation remains `Default` because no functional Checker Set ownership/equipment contract is exposed yet.
 
 ### Dice Skin
 
@@ -119,57 +123,51 @@ The accepted product direction is that the visible dice pair can combine cosmeti
 
 Dice skins may style the die body/material, but value readability is mandatory. Pip/value presentation should remain constrained by the application or by a validated skin specification so a skin cannot obscure the authoritative dice result.
 
-Dice skins must fit fixed dice bounds and must not affect roll semantics or animation timing.
+Dice skins must fit fixed dice bounds and must not affect roll semantics or animation timing. The current BoardScene has separate local/opponent Dice Skin presentation hooks, both resolving to `Default` today.
 
 ### Profile Frame and reactions
 
-Profile Frame belongs to the owning player identity surface.
+Profile Frame belongs to the owning player identity surface. This is the currently functional cosmetic slot: trusted equipped Profile Frames are resolved for local/opponent identity and are also presented on profile/public-profile surfaces.
 
-Reaction Pack controls only the available visual reaction assets/presentation for reactions the account is allowed to use. Reactions remain non-blocking and must not cover gameplay-critical controls or board regions for an extended period.
+Reaction Pack controls only the available visual reaction assets/presentation for reactions the account is allowed to use. Reactions remain non-blocking and must not cover gameplay-critical controls or board regions for an extended period. Reaction Pack remains `Default` in the current implementation.
 
 ## Cosmetic resolution boundary
 
-The rendering code should consume one resolved presentation model rather than read ownership/store state directly throughout the component tree.
+The rendering code consumes one resolved presentation model rather than reading ownership/store state directly throughout the component tree.
 
-Conceptually:
+This boundary is now present in code:
 
 ```text
-account/match cosmetic data
+trusted account/match cosmetic data
         ↓
 resolveMatchCosmetics(...)
         ↓
 ResolvedMatchCosmetics
         ↓
-BoardScene / PlayerStrip / Reactions
+BoardScene / player identity presentation
 ```
 
-A conceptual resolved model contains stable IDs/specifications for at least:
+`ResolvedMatchCosmetics` contains owner-aware local/opponent presentation slots for board, checkers, dice and profile frames, plus the local reaction presentation. Perspective is resolved from the viewer's authoritative seat identity rather than from fixed screen-top/screen-bottom assumptions.
 
-```text
-board.localTheme
-board.opponentTheme
-checkers.localSet
-checkers.opponentSet
-dice.localSkin
-dice.opponentSkin
-profile.localFrame
-profile.opponentFrame
-reactions.localPack
-```
+Current implementation status:
 
-Exact TypeScript contracts are an implementation concern and should be introduced only where needed. The important architectural requirement is the resolver boundary.
+- `profile.localFrame` / `profile.opponentFrame`: resolve trusted equipped Profile Frames;
+- `board.localTheme` / `board.opponentTheme`: `Default`;
+- `checkers.localSet` / `checkers.opponentSet`: `Default`;
+- `dice.localSkin` / `dice.opponentSkin`: `Default`;
+- `reactions.localPack`: `Default`.
 
-For UX/UI v2, the resolver may initially return only `Default` cosmetics. This is preferable to adding speculative Store/backend contracts solely for the visual refactor.
+The important architectural requirement remains the resolver boundary. Adding a future accepted slot should extend trusted data/presentation through that boundary rather than scattering ownership logic through rendering components.
 
 ## Server ownership and trust boundary
 
-When cosmetic ownership/equipment becomes functional, the backend must be authoritative for which cosmetics an account owns and has equipped.
+Cosmetic ownership/equipment is functional for Profile Frames and the backend is authoritative for what an account owns and has equipped.
 
-The client must not be trusted to declare arbitrary cosmetic IDs to the opponent.
+The client must not be trusted to declare arbitrary cosmetic IDs to the opponent. Store price, purchase eligibility, ownership and equipment validation are server-owned concerns.
 
-A future match presentation contract may be carried in the match snapshot or provided through another server-resolved contract, but it must be validated server-side.
+Match/profile presentation uses server-trusted equipment data. Future Board Theme, Checker Set, Dice Skin or Reaction Pack contracts must preserve the same trust boundary.
 
-This is an economy/identity trust requirement, not a game-rule requirement: cosmetic state still must not enter the deterministic game engine.
+This is an economy/identity trust requirement, not a game-rule requirement: cosmetic state must not enter the deterministic game engine.
 
 ## Asset safety and loading
 
@@ -254,16 +252,19 @@ Accepted baseline:
 
 This rule is especially important for Long Nardy, where large stacks are normal gameplay and must remain readable on compact phones.
 
-## Explicit non-goals for the UX/UI v2 refactor
+## Scope after Update 1
 
-The UI refactor does not need to implement:
+Store screens, Profile Frame purchasing, permanent ownership/equipment persistence and backend ownership tables are no longer future requirements: Update 1 implemented that vertical slice.
 
-- Store screens;
-- cosmetic purchasing;
-- inventory/equipment persistence;
+This Board Scene architecture still does not require prematurely implementing:
+
+- non-default Board Themes;
+- non-default Checker Sets;
+- non-default Dice Skins;
+- non-default Reaction Packs;
 - Telegram Stars;
 - rarity economy;
-- backend cosmetic ownership tables;
-- match protocol changes solely to make non-default skins usable immediately.
+- a large cosmetic catalog;
+- arbitrary match-protocol changes solely to make speculative skins usable.
 
-It must, however, avoid architecture that would require the Board Scene to be rewritten when those systems are later introduced.
+Future cosmetic expansion must reuse this architecture rather than changing geometry, hitboxes, legal moves, checker identity, dice authority or game state.

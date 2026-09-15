@@ -1,13 +1,14 @@
 # UNDERGAMMON
 
 Telegram-first online Long Nardy and Classic Backgammon. Season 0 is a persistent
-Open Beta. This is public-source **proprietary software**, not open source; see
-[LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
+Open Beta. Production is live at `https://undergammon.tracerxbrhd.ru` and the
+Telegram entry point is `@UndergammonBot`. This is public-source **proprietary
+software**, not open source; see [LICENSE](LICENSE) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Approved decisions remain in [docs/product](docs/product) and
 [docs/architecture](docs/architecture). Read [AGENTS.md](AGENTS.md) before changing
-behavior. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for verification
-results, incomplete release requirements, and operator actions.
+behavior. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for the current
+Season 0 implementation, verification baseline, technical debt and accepted deferrals.
 
 ## Local development
 
@@ -63,7 +64,8 @@ Build shared packages before typechecking because workspace exports point at `di
 
 ## Production on one VPS
 
-Point the A record for `undergammon.tracerxbrhd.ru` to the VPS. Only add an AAAA
+Production currently runs on one VPS using this deployment model. For a fresh host,
+point the A record for `undergammon.tracerxbrhd.ru` to the VPS. Only add an AAAA
 record if IPv6 routing is configured. Allow inbound TCP 80/443 (and optionally UDP
 443). PostgreSQL has no published production port. Install Docker Engine and Compose.
 
@@ -149,8 +151,11 @@ Normal completion awards 100 XP to the winner and 40 to the loser; private games
 use 50%. Surrender, timeout, abandon and no-contest award no XP to either player.
 Level is derived from total XP using progressively increasing 100, 200, 300… costs.
 Ranked wins award 20 Coins plus deterministic streak bonuses of 30/70/200 at
-3/5/10 wins. Casual/private play awards no Coins. Constants live in
-`apps/server/src/policy.ts`; there is no paid currency or shop.
+3/5/10 wins. Casual/private play awards no Coins. Daily Reward provides the current
+7-day Coin cycle. Coins are an earned in-game currency with an append-only ledger;
+there is no paid currency or Telegram Stars integration. Coins can be spent in the
+Store on curated permanent cosmetics; the current purchasable catalog starts with
+the Bronze Profile Frame.
 
 Sessions use random opaque tokens, stored only as SHA-256 hashes, with HttpOnly
 SameSite=Strict cookies (Secure in production). Telegram launch data expires after

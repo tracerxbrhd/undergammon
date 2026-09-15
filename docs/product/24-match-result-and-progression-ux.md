@@ -1,6 +1,6 @@
 # 24 — Match Result and Progression UX
 
-Status: accepted UX/UI v2 product direction, implementation pending
+Status: accepted UX/UI v2 product direction; authoritative match-attributed XP/rating progression contract is implemented, while presentation polish remains an ongoing UX concern.
 
 ## Purpose
 
@@ -85,26 +85,23 @@ ACCOUNT LEVEL 13
 Level Up
 ```
 
-Exact XP amounts remain balancing parameters defined by the authoritative progression system, not by the UI.
+Exact XP amounts are defined by the authoritative progression policy, not by the UI.
 
-## Authoritative reward contract requirement
+## Authoritative reward contract
 
-The frontend must not derive per-match XP by comparing `Profile.totalXp` snapshots before and after the match.
+The frontend does not derive per-match XP by comparing unrelated `Profile.totalXp` snapshots.
 
-That approach is unsafe because unrelated XP/reward changes, reconnects, retries or future progression sources could make the inferred delta incorrect.
+The shared protocol now exposes `MatchResultProgression`, containing the authoritative match-attributed progression values needed by the result presentation:
 
-The result presentation requires authoritative match-attributed progression data.
+- `xpGained`;
+- `totalXpBefore` / `totalXpAfter`;
+- `levelBefore` / `levelAfter`;
+- `progressBefore` / `progressAfter` using the shared `LevelProgress` contract;
+- `ratingBefore` / `ratingAfter` / `ratingDelta` where the match affects rating.
 
-A future implementation contract must provide enough information to render the final state without duplicating server policy. It should expose, directly or through an equivalent stable model:
+This keeps the Mini App from duplicating server XP/rating policy and prevents unrelated reward/profile changes from corrupting the displayed match result.
 
-- the XP delta awarded by this match;
-- total XP before and after the award;
-- Account Level before and after;
-- enough authoritative level-boundary/progress information to render progress toward the next level without guessing the server XP curve.
-
-The exact transport shape is an implementation decision. A protocol-wide redesign is not required; a small result/history/match-result contract extension is preferred.
-
-The client must not maintain an independently tuned copy of the Account XP curve solely for animation purposes unless the curve is deliberately moved into shared deterministic code used by both server and client.
+The server remains authoritative for the award and persists the result before presentation. The transport shape may evolve compatibly later, but the application no longer depends on a hypothetical future progression contract.
 
 ## Animation sequence
 

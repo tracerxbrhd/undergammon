@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted product decisions for the first public release / Season 0.
+Accepted and implemented for Season 0. The current XP policy is server-owned and exposed to the client through shared progression contracts.
 
 ## Purpose
 
@@ -14,40 +14,35 @@ UNDERGAMMON has a permanent Account Level that represents long-term activity and
 
 Account Level must never affect matchmaking, dice RNG, game rules, or competitive rating.
 
-## XP Sources
+## Current XP sources
 
-All playable match types may grant Account XP so that every form of play provides at least some persistent progression:
+Current playable PvP modes grant Account XP only for naturally completed `BEAR_OFF` matches:
 
-- Ranked PvP
-- Casual PvP
-- Private / friend matches
-- AI matches
+- Ranked PvP: winner `100 XP`, loser `40 XP`;
+- Casual PvP: winner `100 XP`, loser `40 XP`;
+- Private / friend match: winner `50 XP`, loser `20 XP`.
 
-Different modes may use different XP multipliers. Exact values are tuning parameters and are not fixed in the product contract yet.
+The values above are application policy, owned by the server rather than client UI.
 
-Ranked and normal PvP should generally be more efficient sources than easily farmable modes such as AI. Private and AI matches still grant meaningful XP.
+AI is intentionally deferred in Season 0. If AI is implemented later, its XP policy must be accepted explicitly rather than inferred from this document.
 
-## Result Rules
+## Result rules
 
-A completed win grants more XP than a completed loss.
+A naturally completed win grants more XP than a naturally completed loss.
 
 A normal, honestly completed loss still grants meaningful XP.
 
-The following outcomes grant no XP:
+The current implementation grants no XP for non-`BEAR_OFF` finishes, including:
 
-- Surrender
-- Abandon / disconnect loss
-- Technical no-contest
+- surrender;
+- abandon / disconnect loss;
+- timeout;
+- start timeout / incomplete match;
+- technical no-contest.
 
-Timeout handling should follow the same anti-farming principle as other prematurely terminated matches and must not become a convenient XP farming mechanism.
+This keeps prematurely terminated matches from becoming an XP farming mechanism.
 
-The core model should remain simple:
-
-`base completed-match XP + win bonus`, then apply a mode multiplier.
-
-Exact amounts and multipliers should be tuned during Season 0 rather than hard-coded as immutable product rules.
-
-## No Duration-Based XP
+## No duration-based XP
 
 XP does not depend on:
 
@@ -55,12 +50,12 @@ XP does not depend on:
 - number of turns;
 - number of checker moves;
 - captures;
-- bearing-off count;
+- bearing-off count before completion;
 - other low-level gameplay actions.
 
 This avoids rewarding players for intentionally extending matches and keeps progression understandable.
 
-## Permanent Progression
+## Permanent progression
 
 Account Level is permanent.
 
@@ -69,13 +64,11 @@ Account Level is permanent.
 - Account Level does not decrease.
 - Seasonal soft resets affect rating only, not Account XP.
 
-## Level Model
+## Level model
 
 There is no hard maximum Account Level.
 
-The XP required for each next level grows progressively so that early levels arrive quickly while high levels represent substantial long-term play.
-
-Persist `totalXp` as the authoritative progression value. Account Level should be derived from the XP curve rather than maintained as an independently mutable counter.
+The XP required for each next level grows progressively. The current server policy derives the level from authoritative `totalXp`; level is not maintained as an independently mutable counter.
 
 Conceptually:
 
@@ -84,13 +77,15 @@ account.totalXp = 18_420;
 accountLevel = levelFromXp(account.totalXp);
 ```
 
-This prevents `level` and `xp` from drifting out of sync and keeps future balancing options open.
+The shared profile/result contracts expose authoritative level-progress boundaries (`LevelProgress`) so the Mini App does not duplicate the XP curve merely to render progress.
+
+This prevents `level`, `totalXp` and UI progress from drifting out of sync while preserving future balancing options.
 
 ## Rewards
 
-Level-up rewards are not required for Season 0.
+Level-up rewards are not implemented/required for Season 0.
 
-The progression model must nevertheless allow rewards to be attached to levels later without redesigning XP storage or progression semantics. Potential future rewards include:
+The progression model can later support rewards attached to levels without redesigning XP storage or progression semantics. Potential future rewards include:
 
 - Coins;
 - profile frames;
@@ -111,6 +106,8 @@ It may be shown in:
 - player/profile cards;
 - leaderboard-related player details where appropriate.
 
-It should not be permanently displayed in the in-match HUD. The match HUD should remain focused on information that matters to the active game, such as nickname, avatar, ruleset rating, turn state, timer, dice, and connection state.
+The owner Profile additionally receives authoritative `LevelProgress` data for progress-bar presentation. Match result progression is exposed as authoritative match-attributed data rather than inferred from unrelated profile snapshots.
+
+Account Level should not be permanently displayed in the in-match HUD. The match HUD should remain focused on information that matters to the active game, such as nickname, avatar, ruleset rating, turn state, timer, dice, and connection state.
 
 Account Level must not visually imply competitive strength or replace the ruleset-specific rating.

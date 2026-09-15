@@ -1,6 +1,6 @@
 # 21 — Telegram Mini App UX/UI v2
 
-Status: accepted baseline, implementation pending
+Status: accepted baseline, substantially implemented; current primary navigation evolved in Update 1.
 
 ## Purpose
 
@@ -22,7 +22,7 @@ Relevant source documents remain authoritative for their domains, especially:
 - `19-season-0-release-scope.md`;
 - `../architecture/27-miniapp-and-frontend-architecture.md`.
 
-The current `apps/miniapp` implementation is a functional prototype and is not a visual design to preserve. A substantial frontend refactor is allowed where it improves the product without changing authoritative backend/game behavior.
+The current `apps/miniapp` implementation substantially follows this v2 direction. This document remains the presentation contract for unfinished polish and later evolution; it is not a claim that every detailed visual acceptance point below is complete.
 
 ## Non-negotiable constraints
 
@@ -40,10 +40,12 @@ UX/UI v2 must preserve the following architectural properties:
 
 ## Information architecture
 
-Primary application navigation is intentionally small:
+Primary application navigation remains intentionally small. Update 1 expanded the accepted three-destination baseline to the current five usable destinations without changing Play's central role:
 
 ```text
 UNDERGAMMON
+├─ Store
+├─ Cosmetics
 ├─ Play
 ├─ Rankings
 └─ Profile
@@ -53,11 +55,15 @@ UNDERGAMMON
    └─ Admin (only when authorized)
 ```
 
-Primary bottom navigation contains exactly:
+Primary bottom navigation currently contains exactly:
 
+- Store;
+- Cosmetics;
 - Play;
 - Rankings;
 - Profile.
+
+`Play` remains centered and is the primary/default game destination. Store and Cosmetics are real Update 1 destinations, not placeholders; their current content is intentionally narrow around Profile Frames and Coins.
 
 Match History, Learn & Rules, Settings and Admin are secondary destinations under Profile and must not compete with the primary game flow.
 
@@ -569,13 +575,15 @@ UX/UI v2 does not introduce:
 - protocol v2;
 - game-engine rewrites;
 - AI placeholders as fake available functionality;
-- Store as a primary tab before a usable store exists;
+- speculative Social/Events destinations or broad Store/catalog expansion beyond separately accepted product work;
 - achievements;
 - replay/timeline;
 - public player search/social graph;
 - mandatory fullscreen;
-- multiple themes;
+- multiple board themes as completed content;
 - separate board engines for different orientations/rulesets.
+
+Store and Cosmetics are now implemented primary destinations from Update 1; this does not imply the broader cosmetic categories or monetization systems are complete.
 
 ## Acceptance baseline
 
@@ -591,18 +599,18 @@ The UX/UI v2 implementation is not complete unless all of the following remain t
 8. One adaptive board serves both Long Nardy and Classic Backgammon.
 9. Backgammon bar/hit/bearing-off and Long Nardy movement remain correctly represented.
 10. Matchmaking, challenge waiting, waiting-for-players, reconnect, control loss and result are distinct human-readable UX states.
-11. Primary navigation remains Play / Rankings / Profile.
+11. Primary navigation remains Store / Cosmetics / Play / Rankings / Profile, with Play centered.
 12. History / Learn & Rules / Settings / Admin remain secondary.
 13. Russian and English layouts are tested for compact mobile widths.
 14. Critical controls remain practical touch targets.
 15. Telegram stable viewport and safe-area behavior is handled intentionally.
-16. Real Telegram E2E is repeated on Android and iPhone-class layouts after the refactor.
+16. Real Telegram E2E is repeated across representative Android/iPhone-class layouts as the UI evolves.
 17. Existing server-authoritative/integration tests remain green.
-18. Full natural bearing-off victory paths for both rulesets are manually accepted before considering Season 0 gameplay UX complete.
+18. Full natural bearing-off victory paths for both rulesets remain part of gameplay UX acceptance.
 
 ## Open design work
 
-The following details are intentionally not frozen by this baseline and should be designed next:
+The following details are intentionally not frozen by this baseline and should be refined through implementation/device feedback:
 
 - exact Board Scene anatomy and proportions;
 - exact 24-point/bar/off-tray geometry for both rulesets;

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted product decisions for the first public UNDERGAMMON beta release.
+Accepted product decisions for the first public UNDERGAMMON beta release. Season 0 is now deployed; this document remains the release-scope contract rather than the live implementation-status page. See `IMPLEMENTATION_STATUS.md` for the current production snapshot.
 
 Season 0 is an **Open Beta / soft launch**. Registration is open to anyone who reaches the bot or Mini App; there is no whitelist or invite-code system. Distribution can remain intentionally small at first, but the product itself is not technically gated.
 
@@ -14,7 +14,7 @@ A defect that can corrupt authoritative match state, lose an active match, produ
 
 ## Required before opening Season 0
 
-The following are launch requirements:
+The following were launch requirements and are now implemented for the deployed Season 0 baseline:
 
 - Telegram bot entry flow and Mini App launch.
 - Game Account creation and authentication through validated Telegram init data.
@@ -40,11 +40,11 @@ The following are launch requirements:
 - Minimal transactional bot notifications required for active-flow recovery, including challenge acceptance and match recovery.
 - Minimal hidden Admin tab with the previously defined moderation and controlled rating/Coins adjustment capabilities.
 - Basic server-side telemetry and structured operational logs.
-- Real-device end-to-end verification, including Android Telegram versus iPhone Telegram gameplay.
+- Real-device end-to-end verification, including cross-account Telegram gameplay.
 
 ## Not release blockers
 
-The following may be added in updates during Season 0 and must not delay the beta when the core game is otherwise ready:
+The following were explicitly allowed to arrive during Season 0 and must not be read as original launch blockers:
 
 - AI opponent mode.
 - Daily rewards.
@@ -59,18 +59,21 @@ The following may be added in updates during Season 0 and must not delay the bet
 - Real-money monetization / Telegram Stars.
 - Tournament system.
 
+Update 1 has since delivered Daily Reward plus the first permanent-cosmetics Store/ownership/equipment vertical slice. AI, a large cosmetic catalog, Telegram Stars and the other items above remain deferred unless separately implemented later.
+
 ## Economy during early Season 0
 
-Coins are real persistent account progression from the first day even if the cosmetic store is not yet available.
+Coins are real persistent account progression from the first day.
 
-Players may accumulate Coins before meaningful spend options exist. Those Coins are not removed when the cosmetic store or new skins are introduced later.
+The original launch contract allowed players to accumulate Coins before meaningful spend options existed. Update 1 now provides the first spend option through the Store: the Bronze Profile Frame is purchasable with Coins, while the wider catalog remains intentionally small.
 
-At launch, the critical economy requirement is therefore:
+The continuing economy integrity requirements are:
 
 1. correct earning rules;
-2. durable balance and ledger storage;
-3. safe administrative corrections;
-4. persistence across deployments and Season 0 updates.
+2. durable balance and append-only ledger storage;
+3. authoritative spending and ownership validation;
+4. safe administrative corrections;
+5. persistence across deployments and Season 0 updates.
 
 A rich catalog is content, not a launch prerequisite.
 

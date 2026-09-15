@@ -1,6 +1,6 @@
 # Question 3 — Bot, Mini App and match setup UX
 
-Status: accepted product decision.
+Status: accepted product decision; current Season 0 implementation reflects the PvP flows below, while AI remains deferred.
 
 ## Product boundary
 
@@ -13,7 +13,7 @@ The bot is not a second full UI for the product. It exists primarily as:
 - the social/share layer for friend challenges;
 - the notification and recovery channel for active or pending matches.
 
-Profile, rating, history, rewards, settings and the game itself belong primarily to the Mini App.
+Profile, rating, history, rewards, Store/Cosmetics, settings and the game itself belong primarily to the Mini App.
 
 ## First launch
 
@@ -53,19 +53,18 @@ Ranked state should be treated more carefully than the ruleset preference; persi
 
 ### Opponent selector
 
-For Casual mode, the available opponent choices are:
+For the current Season 0 implementation, Casual supports:
 
 - Friend;
-- Find Player;
-- Bot.
+- Find Player.
 
-For Ranked mode, only server matchmaking is permitted:
+Ranked supports only server matchmaking:
 
 - Find Player.
 
 Ranked games with a specifically selected friend are forbidden to reduce boosting/rating-transfer abuse.
 
-Games against AI are always unranked.
+AI/Bot opponent mode is intentionally deferred. If implemented later, AI games remain unranked and must not be exposed as a selectable current option before the mode is functional.
 
 ## Rating visibility
 
@@ -103,15 +102,9 @@ Working label only; final copy will be decided later.
 
 Pressing it starts casual or ranked matchmaking according to the selected competitive mode.
 
-### Bot
+### Future AI/Bot mode
 
-For `Bot`:
-
-```text
-[ INTO BATTLE ]
-```
-
-Pressing it starts an AI match immediately.
+AI is not part of the current Season 0 selectable opponent flow. If the deferred mode is implemented later, its primary action may start an AI match immediately, but that future design does not imply a current implementation.
 
 ### Friend
 
@@ -168,12 +161,12 @@ The following are deliberately not part of this product decision:
 
 ## Product principle
 
-The setup flow should feel like configuring one immediate game, not navigating through an application hierarchy:
+The current setup flow should feel like configuring one immediate PvP game, not navigating through an application hierarchy:
 
 ```text
 Mode       [ Casual | Ranked ]
 Ruleset    [ Long Nardy ▼ ]
-Opponent   [ Friend | Find Player | Bot ]
+Opponent   [ Friend | Find Player ]
 
             [ Primary action ]
 ```
