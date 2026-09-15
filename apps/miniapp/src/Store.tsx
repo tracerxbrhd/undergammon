@@ -136,9 +136,9 @@ export function Store({
                 </p>
               </div>
               {product.owned ? (
-                <span className="cosmetic-state owned">
+                <button className="cosmetic-state owned" disabled>
                   {language === 'ru' ? 'Куплено' : 'Owned'}
-                </span>
+                </button>
               ) : (
                 <button disabled={pending !== null} onClick={() => void buy(product.cosmeticId)}>
                   {pending === product.cosmeticId
