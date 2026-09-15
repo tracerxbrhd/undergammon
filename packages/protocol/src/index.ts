@@ -23,10 +23,36 @@ export const commandSchema = z
 export type Command = z.infer<typeof commandSchema>;
 export type Ruleset = z.infer<typeof rulesetSchema>;
 export type Mode = z.infer<typeof modeSchema>;
-export const profileFrameIdSchema = z.enum(['default', 'season0_tester_frame']);
+export const cosmeticSlotSchema = z.enum(['PROFILE_FRAME']);
+export type CosmeticSlot = z.infer<typeof cosmeticSlotSchema>;
+export const profileFrameIdSchema = z.enum([
+  'default',
+  'season0_tester_frame',
+  'bronze_profile_frame',
+]);
 export type ProfileFrameId = z.infer<typeof profileFrameIdSchema>;
 export interface EquippedCosmetics {
   profileFrame: ProfileFrameId;
+}
+export interface OwnedCosmetic {
+  cosmeticId: string;
+  slot: CosmeticSlot;
+  acquiredAt: string;
+  source: string;
+}
+export interface CosmeticsInventory {
+  owned: OwnedCosmetic[];
+  equipped: EquippedCosmetics;
+}
+export interface StoreProduct {
+  cosmeticId: ProfileFrameId;
+  slot: CosmeticSlot;
+  priceCoins: number;
+  owned: boolean;
+}
+export interface StorePurchaseResult {
+  balance: number;
+  product: StoreProduct;
 }
 export interface Player {
   accountId: string;

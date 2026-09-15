@@ -10,6 +10,8 @@ import { GlassSurface, ProgressBar, SegmentedControl, BottomSheet } from './ui';
 import { primaryNavigation, type Screen } from './app/navigation';
 import { resolveProfileFrame } from './game/cosmetics';
 import { DailyReward } from './DailyReward';
+import { Store } from './Store';
+import { Cosmetics } from './Cosmetics';
 import './styles/tokens.css';
 import './style.css';
 interface Challenge {
@@ -300,6 +302,23 @@ function App() {
       ) : (
         <>
           <div className="page">
+            {screen === 'store' && (
+              <Store
+                language={language}
+                coins={me.coins}
+                onBalance={(coins) =>
+                  setMe((current) => (current ? { ...current, coins } : current))
+                }
+              />
+            )}
+            {screen === 'cosmetics' && (
+              <Cosmetics
+                language={language}
+                onEquipment={(cosmetics) =>
+                  setMe((current) => (current ? { ...current, cosmetics } : current))
+                }
+              />
+            )}
             {screen === 'home' && (
               <>
                 <div className="identity">

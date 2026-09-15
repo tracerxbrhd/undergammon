@@ -8,7 +8,13 @@ import { MatchService } from '../src/matches.js';
 import { buildServer } from '../src/app.js';
 import { signedInitData } from './helpers.js';
 import type { Command, MatchSnapshot } from '@undergammon/protocol';
-import { grantSeason0TesterFrame } from '../src/cosmetics.js';
+import {
+  cosmeticsInventory,
+  equipCosmetic,
+  grantSeason0TesterFrame,
+  purchaseCosmetic,
+  storeProducts,
+} from '../src/cosmetics.js';
 import {
   claimDailyReward,
   claimDailyRewardInTransaction,
@@ -202,6 +208,69 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
     expect(subsequent.players.A.cosmetics?.profileFrame).toBe('season0_tester_frame');
     expect(subsequent.players.B.cosmetics?.profileFrame).toBe('default');
     expect(qualifying.players.A.cosmetics?.profileFrame).toBe('default');
+  });
+  it('purchases and equips a server-defined cosmetic without auto-equipping it', async () => {
+    await transaction(pool, (db) => service.coins(db, user(0), 200, 'ADMIN_ADJUSTMENT', 'seed'));
+    expect(await storeProducts(pool, user(0))).toEqual([
+      {
+        cosmeticId: 'bronze_profile_frame',
+        slot: 'PROFILE_FRAME',
+        priceCoins: 150,
+        owned: false,
+      },
+    ]);
+
+    const purchased = await purchaseCosmetic(pool, user(0), 'bronze_profile_frame');
+    expect(purchased.balance).toBe(50);
+    expect((await cosmeticsInventory(pool, user(0))).equipped.profileFrame).toBe('default');
+    expect(
+      await rows(pool, "SELECT 1 FROM coin_ledger WHERE source='COSMETIC_PURCHASE'"),
+    ).toHaveLength(1);
+    expect(
+      await rows(pool, 'SELECT 1 FROM cosmetic_ownership WHERE account_id=$1', [user(0)]),
+    ).toHaveLength(1);
+
+    await expect(purchaseCosmetic(pool, user(0), 'bronze_profile_frame')).rejects.toThrow(
+      'COSMETIC_ALREADY_OWNED',
+    );
+    expect(
+      await rows(pool, "SELECT 1 FROM coin_ledger WHERE source='COSMETIC_PURCHASE'"),
+    ).toHaveLength(1);
+    expect(
+      (await equipCosmetic(pool, user(0), 'PROFILE_FRAME', 'bronze_profile_frame')).profileFrame,
+    ).toBe('bronze_profile_frame');
+    expect((await equipCosmetic(pool, user(0), 'PROFILE_FRAME', 'default')).profileFrame).toBe(
+      'default',
+    );
+  });
+  it('serializes concurrent purchases and rolls back insufficient purchases', async () => {
+    await transaction(pool, (db) => service.coins(db, user(0), 200, 'ADMIN_ADJUSTMENT', 'seed'));
+    const attempts = await Promise.allSettled([
+      purchaseCosmetic(pool, user(0), 'bronze_profile_frame'),
+      purchaseCosmetic(pool, user(0), 'bronze_profile_frame'),
+    ]);
+    expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(1);
+    expect(
+      (await rows<{ coins: number }>(pool, 'SELECT coins FROM accounts WHERE id=$1', [user(0)]))[0]
+        ?.coins,
+    ).toBe(50);
+
+    await expect(purchaseCosmetic(pool, user(1), 'bronze_profile_frame')).rejects.toThrow(
+      'INSUFFICIENT_COINS',
+    );
+    expect(
+      await rows(pool, 'SELECT 1 FROM cosmetic_ownership WHERE account_id=$1', [user(1)]),
+    ).toHaveLength(0);
+    expect(
+      await rows(
+        pool,
+        "SELECT 1 FROM coin_ledger WHERE account_id=$1 AND source='COSMETIC_PURCHASE'",
+        [user(1)],
+      ),
+    ).toHaveLength(0);
+    await expect(
+      equipCosmetic(pool, user(1), 'PROFILE_FRAME', 'bronze_profile_frame'),
+    ).rejects.toThrow('COSMETIC_NOT_OWNED');
   });
   it('preserves existing equipment and stops runtime grants after Season 0', async () => {
     await pool.query(

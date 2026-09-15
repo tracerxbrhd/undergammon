@@ -432,8 +432,8 @@ strong,
   height: 70px;
   transform: translateX(-50%);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 5px 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 5px 4px;
   border-radius: 18px;
 }
 .bottom-nav button {
@@ -445,7 +445,9 @@ strong,
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 12px;
+  min-width: 0;
+  min-height: 56px;
+  font-size: 10px;
 }
 .bottom-nav button i {
   font-style: normal;
@@ -459,6 +461,66 @@ strong,
   border: 1px solid #ffffff12;
   border-radius: 14px;
   background: var(--surface-strong);
+}
+.commerce-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.commerce-title strong {
+  color: var(--accent);
+  white-space: nowrap;
+  padding-bottom: 6px;
+}
+.section-label {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.cosmetic-tabs {
+  display: flex;
+  margin: 14px 0;
+}
+.cosmetic-tabs button {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.cosmetic-grid {
+  display: grid;
+  gap: 10px;
+}
+.cosmetic-card {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+.cosmetic-card h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.cosmetic-card small {
+  color: var(--text-muted);
+}
+.cosmetic-card button {
+  min-height: 42px;
+  padding-inline: 12px;
+}
+.cosmetic-preview {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+.commerce-notice {
+  color: var(--accent);
+  text-align: center;
 }
 .leader-list {
   margin-top: 16px;
@@ -520,6 +582,14 @@ strong,
     0 0 0 2px #d3a94f,
     0 0 0 4px color-mix(in srgb, #d3a94f 24%, transparent),
     inset 0 0 0 1px rgb(255 239 184 / 35%);
+}
+.profile-frame-bronze {
+  box-shadow:
+    0 0 0 3px #9b6845,
+    0 0 0 5px #d0a176;
+}
+.player-strip.profile-frame-bronze {
+  border-color: #9b6845;
 }
 .player-strip.profile-frame-season0-tester {
   box-shadow:
