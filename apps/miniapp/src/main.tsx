@@ -86,9 +86,20 @@ function App() {
     });
   useEffect(() => {
     platform.ready();
-    return platform.subscribeViewport(({ height, safeBottom }) => {
-      document.documentElement.style.setProperty('--viewport-height', `${height}px`);
-      document.documentElement.style.setProperty('--platform-safe-bottom', `${safeBottom}px`);
+    return platform.subscribeLayout(({ stableViewportHeight, safeArea, contentSafeArea }) => {
+      const root = document.documentElement.style;
+      root.setProperty('--app-viewport-stable-height', `${stableViewportHeight}px`);
+      for (const edge of ['top', 'right', 'bottom', 'left'] as const) {
+        const environmentInset = `env(safe-area-inset-${edge}, 0px)`;
+        root.setProperty(`--app-safe-${edge}`, `max(${safeArea[edge]}px, ${environmentInset})`);
+        // Telegram content insets describe the usable content rectangle. Older
+        // clients can omit or zero them, so fall back to the device safe inset.
+        const contentInset = contentSafeArea[edge] || safeArea[edge];
+        root.setProperty(
+          `--app-content-safe-${edge}`,
+          `max(${contentInset}px, ${environmentInset})`,
+        );
+      }
     });
   }, []);
   useEffect(() => {

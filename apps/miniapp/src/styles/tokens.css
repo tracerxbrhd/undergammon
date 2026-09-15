@@ -24,6 +24,13 @@
   --point-light: #d5c39d;
   --checker-ivory: #e8dfcf;
   --checker-dark: #252824;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --viewport-height: 100dvh;
+  --app-viewport-stable-height: 100dvh;
+  --app-safe-top: env(safe-area-inset-top, 0px);
+  --app-safe-right: env(safe-area-inset-right, 0px);
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --app-safe-left: env(safe-area-inset-left, 0px);
+  --app-content-safe-top: var(--app-safe-top);
+  --app-content-safe-right: var(--app-safe-right);
+  --app-content-safe-bottom: var(--app-safe-bottom);
+  --app-content-safe-left: var(--app-safe-left);
 }

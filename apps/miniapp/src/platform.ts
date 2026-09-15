@@ -5,8 +5,8 @@ interface TelegramWebApp {
   openTelegramLink(url: string): void;
   HapticFeedback?: { impactOccurred(style: 'light'): void };
   viewportStableHeight?: number;
-  safeAreaInset?: { bottom?: number };
-  contentSafeAreaInset?: { bottom?: number };
+  safeAreaInset?: TelegramInsets;
+  contentSafeAreaInset?: TelegramInsets;
   onEvent?(
     event: 'viewportChanged' | 'safeAreaChanged' | 'contentSafeAreaChanged',
     listener: () => void,
@@ -15,6 +15,25 @@ interface TelegramWebApp {
     event: 'viewportChanged' | 'safeAreaChanged' | 'contentSafeAreaChanged',
     listener: () => void,
   ): void;
+}
+interface TelegramInsets {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
+export interface LayoutInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export interface PlatformLayout {
+  stableViewportHeight: number;
+  safeArea: LayoutInsets;
+  contentSafeArea: LayoutInsets;
 }
 declare global {
   interface Window {
@@ -37,16 +56,27 @@ export const platform = {
   },
   startParameter: () =>
     new URLSearchParams(window.Telegram?.WebApp.initData ?? '').get('start_param') ?? '',
-  subscribeViewport: (listener: (value: { height: number; safeBottom: number }) => void) => {
+  subscribeLayout: (listener: (value: PlatformLayout) => void) => {
     const webApp = window.Telegram?.WebApp;
-    const update = () =>
-      listener({
-        height: webApp?.viewportStableHeight ?? window.innerHeight,
-        safeBottom: Math.max(
-          webApp?.safeAreaInset?.bottom ?? 0,
-          webApp?.contentSafeAreaInset?.bottom ?? 0,
-        ),
-      });
+    let previous = '';
+    const insets = (value?: TelegramInsets): LayoutInsets => ({
+      top: value?.top ?? 0,
+      right: value?.right ?? 0,
+      bottom: value?.bottom ?? 0,
+      left: value?.left ?? 0,
+    });
+    const update = () => {
+      const layout = {
+        stableViewportHeight: webApp?.viewportStableHeight ?? window.innerHeight,
+        safeArea: insets(webApp?.safeAreaInset),
+        contentSafeArea: insets(webApp?.contentSafeAreaInset),
+      };
+      const serialized = JSON.stringify(layout);
+      if (serialized !== previous) {
+        previous = serialized;
+        listener(layout);
+      }
+    };
     update();
     window.addEventListener('resize', update);
     webApp?.onEvent?.('viewportChanged', update);
