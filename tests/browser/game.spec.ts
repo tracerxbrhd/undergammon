@@ -216,11 +216,12 @@ test('player buys, equips, and removes a permanent profile frame', async ({ brow
   await navigation.getByRole('button', { name: /Store/ }).click();
   await expect(page.getByRole('heading', { name: 'Store' })).toBeVisible();
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
-  await expect(page.getByText('200 Coins')).toBeVisible();
-  await expect(page.getByText('150 Coins')).toBeVisible();
+  const storeBalance = page.locator('.commerce-title > strong');
+  await expect(storeBalance).toHaveText('200 Coins');
+  await expect(page.getByText('150 Coins', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Buy' }).click();
   await expect(page.getByRole('button', { name: 'Owned' })).toBeDisabled();
-  await expect(page.getByText('50 Coins')).toBeVisible();
+  await expect(storeBalance).toHaveText('50 Coins');
 
   await navigation.getByRole('button', { name: /Cosmetics/ }).click();
   await page.getByRole('button', { name: 'Equip' }).click();
