@@ -11,8 +11,10 @@ import { connectMatch } from './realtime';
 import { copy, rules, avatarEmoji, message, type Language } from './content';
 import { api, platform, feedbackSound } from './platform';
 import { BottomSheet, ProgressBar } from './ui';
+import { CloseIcon, MoreIcon, ReactionIcon } from './ui/icons';
 import { BoardScene } from './game/BoardScene';
 import { resolveMatchCosmetics } from './game/cosmetics';
+
 export function Game({
   matchId,
   accountId,
@@ -47,6 +49,7 @@ export function Game({
   const [recent, setRecent] = useState<{ move: Move; player: 'A' | 'B' } | null>(null);
   const current = useRef<MatchSnapshot | null>(null);
   const transport = useRef<ReturnType<typeof connectMatch> | null>(null);
+
   useEffect(() => {
     const animations: ReturnType<typeof setTimeout>[] = [];
     const c = connectMatch(
@@ -111,6 +114,7 @@ export function Game({
       c.close();
     };
   }, [matchId]);
+
   useEffect(() => {
     if (s?.status !== 'FINISHED') return;
     const reveal = setTimeout(() => setResultVisible(true), s.lastMoves.length * 250 + 300);
@@ -119,13 +123,23 @@ export function Game({
       .catch(() => setResult(null));
     return () => clearTimeout(reveal);
   }, [matchId, s?.status]);
+
   if (!s)
     return (
-      <section className="panel">
-        <p>{t.reconnecting}</p>
-        <button onClick={onClose}>{t.close}</button>
+      <section className="match-loading">
+        <div className="match-loading-card glass glass-strong">
+          <div className="search-orbit" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </div>
+          <p className="eyebrow">UNDERGAMMON</p>
+          <h2>{t.reconnecting}</h2>
+          <button onClick={onClose}>{t.close}</button>
+        </div>
       </section>
     );
+
   const seat = s.players.A.accountId === accountId ? 'A' : 'B';
   const opponent = seat === 'A' ? 'B' : 'A';
   const cosmetics = resolveMatchCosmetics({ localSeat: seat, players: s.players });
@@ -147,6 +161,7 @@ export function Game({
     0,
     Math.ceil(((s.turnDeadlineAt ?? s.joinDeadlineAt) - now - offset) / 1000),
   );
+
   const select = (point: number | 'BAR') => {
     const destination = next.find((m) => m.from === selected && m.to === point);
     if (destination) {
@@ -156,6 +171,7 @@ export function Game({
       feedbackSound('move');
     } else if (next.some((m) => m.from === point)) setSelected(point);
   };
+
   return (
     <section className="game game-screen">
       <div
@@ -181,12 +197,13 @@ export function Game({
         </strong>
         <button
           className="icon-button subtle"
-          aria-label="Match menu"
+          aria-label={language === 'ru' ? 'Меню матча' : 'Match menu'}
           onClick={() => setMenu(true)}
         >
-          •••
+          <MoreIcon />
         </button>
       </div>
+
       <BoardScene
         game={s.game}
         board={board}
@@ -202,6 +219,7 @@ export function Game({
         offLabel={t.off}
         onSelect={select}
       />
+
       <div
         className={`player player-strip glass glass-regular ${cosmetics.profile.localFrame.presentation.className} ${s.game.activePlayer === seat ? 'active-player' : ''}`}
       >
@@ -219,6 +237,7 @@ export function Game({
           {s.game.activePlayer === seat ? `${seconds}s` : ''}
         </strong>
       </div>
+
       {!control ? (
         <div className="control-overlay glass glass-strong">
           <p>{t.controlLost}</p>
@@ -235,40 +254,50 @@ export function Game({
         <div className="action-dock glass glass-strong">
           <button
             className="icon-button"
-            aria-label="Reactions"
+            aria-label={language === 'ru' ? 'Реакции' : 'Reactions'}
             onClick={() => setReactions(!reactions)}
           >
-            ☺
+            <ReactionIcon />
           </button>
-          <button
-            onClick={() => {
-              setDraft(draft.slice(0, -1));
-              setSelected(null);
-            }}
-            disabled={!draft.length}
-          >
-            {t.undo}
-          </button>
-          {s.game.phase === 'WAITING_FOR_ROLL' ? (
-            <button
-              className="primary"
-              disabled={!yourTurn}
-              onClick={() => {
-                feedbackSound('roll');
-                transport.current?.send('ROLL');
-              }}
-            >
-              {t.roll}
-            </button>
+
+          {s.game.activePlayer === opponent ? (
+            <div className="action-passive">
+              {language === 'ru' ? 'Ход соперника' : "Opponent's turn"}
+            </div>
           ) : (
-            <button
-              className="primary"
-              disabled={!canDraft || !complete}
-              onClick={() => transport.current?.send('TURN', { moves: draft })}
-            >
-              {t.confirm}
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setDraft(draft.slice(0, -1));
+                  setSelected(null);
+                }}
+                disabled={!draft.length}
+              >
+                {t.undo}
+              </button>
+              {s.game.phase === 'WAITING_FOR_ROLL' ? (
+                <button
+                  className="primary"
+                  disabled={!yourTurn}
+                  onClick={() => {
+                    feedbackSound('roll');
+                    transport.current?.send('ROLL');
+                  }}
+                >
+                  {t.roll}
+                </button>
+              ) : (
+                <button
+                  className="primary"
+                  disabled={!canDraft || !complete}
+                  onClick={() => transport.current?.send('TURN', { moves: draft })}
+                >
+                  {t.confirm}
+                </button>
+              )}
+            </>
           )}
+
           {reactions && (
             <div
               className={`reaction-picker glass glass-strong ${cosmetics.reactions.localPack.presentation.className}`}
@@ -286,6 +315,7 @@ export function Game({
           )}
         </div>
       ) : null}
+
       {s.status === 'FINISHED' && resultVisible && (
         <div className="result-sheet glass glass-strong">
           <span className="eyebrow">{message(language, s.finishReason ?? '')}</span>
@@ -323,7 +353,9 @@ export function Game({
           {s.mode !== 'RANKED' && <button onClick={() => onRematch(s.id)}>{t.again}</button>}
         </div>
       )}
+
       {!online && <div className="reconnect-overlay glass glass-strong">{t.reconnecting}</div>}
+
       {menu && (
         <BottomSheet label="Match menu" onClose={() => setMenu(false)}>
           <h2>{s.ruleset === 'LONG_NARDY' ? t.long : t.short}</h2>
@@ -347,6 +379,7 @@ export function Game({
           )}
         </BottomSheet>
       )}
+
       {confirmSurrender && (
         <BottomSheet label={t.surrender} onClose={() => setConfirmSurrender(false)}>
           <h2>{t.surrender}</h2>
@@ -363,9 +396,11 @@ export function Game({
           <button onClick={() => setConfirmSurrender(false)}>{t.cancel}</button>
         </BottomSheet>
       )}
+
       {error && (
         <button className="error" onClick={() => setError('')}>
-          {message(language, error)} ×
+          <span>{message(language, error)}</span>
+          <CloseIcon />
         </button>
       )}
     </section>
