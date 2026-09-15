@@ -10,6 +10,7 @@ const config = loadConfig({
   PUBLIC_ORIGIN: 'http://localhost:5173',
   BOT_TOKEN: '123456:testing-token-no-real-secret',
   BOT_USERNAME: 'TestBot',
+  ADMIN_TELEGRAM_IDS: '1',
   NODE_ENV: 'test',
 });
 const { app, service, broadcast } = await buildServer(pool, config);
