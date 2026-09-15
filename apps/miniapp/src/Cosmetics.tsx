@@ -22,12 +22,14 @@ export function Cosmetics({
   useEffect(() => {
     void api<CosmeticsInventory>('/cosmetics').then(setInventory);
   }, []);
-  const ids: ProfileFrameId[] = [
-    'default',
-    ...(inventory?.owned
-      .map((item) => item.cosmeticId)
-      .filter((id): id is ProfileFrameId => id in names) ?? []),
-  ];
+  const ids: ProfileFrameId[] = inventory
+    ? [
+        'default',
+        ...inventory.owned
+          .map((item) => item.cosmeticId)
+          .filter((id): id is ProfileFrameId => id in names),
+      ]
+    : [];
   const equip = async (cosmeticId: ProfileFrameId) => {
     setPending(cosmeticId);
     try {
@@ -50,7 +52,7 @@ export function Cosmetics({
       <div className="cosmetic-tabs" role="tablist">
         <button className="active">{language === 'ru' ? 'Рамки' : 'Frames'}</button>
       </div>
-      <div className="cosmetic-grid">
+      <div className="cosmetic-grid" aria-busy={inventory === null}>
         {ids.map((id) => {
           const equipped = inventory?.equipped.profileFrame === id;
           return (
