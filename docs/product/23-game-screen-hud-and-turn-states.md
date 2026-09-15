@@ -131,6 +131,78 @@ Rules:
 
 This gives the player a stable action model while preserving the existing explicit draft/undo/confirm interaction contract.
 
+## Dice presentation and roll flow
+
+Dice remain part of the Board Scene rather than a detached browser-control row.
+
+The accepted normal-turn sequence is:
+
+```text
+local turn starts
+→ Roll Dice is available
+→ player explicitly presses Roll Dice
+→ client enters a neutral rolling/pending presentation state
+→ authoritative server result arrives
+→ dice values are revealed
+→ legal board interaction becomes available
+→ local draft is built
+→ complete legal draft enables Confirm Turn
+```
+
+Rules:
+
+- the client must never choose, predict or visually commit to dice values before the authoritative result is received;
+- after the roll command is sent, a short neutral rolling animation may begin immediately, but it must not imply a specific result;
+- repeated roll input is disabled while the command/result is pending;
+- checker interaction remains unavailable until the authoritative dice result has been received and presented;
+- the dice reveal should be brief and readable rather than theatrical; approximately 250–350 ms is an implementation target, not an authoritative timing requirement;
+- dice use graphical die faces/pips rather than Unicode glyphs.
+
+The dice area is permanently reserved by Board Scene geometry. Moving between empty/pre-roll, rolling, revealed, consumed and completed states must not resize or shift the board.
+
+## Consumed dice presentation
+
+Used dice values remain visible for the rest of the local draft instead of disappearing.
+
+The UI should visually distinguish available and consumed values, for example by dimming/marking a consumed die while preserving the original result.
+
+This lets the player understand both:
+
+- the authoritative roll that occurred;
+- which movement values remain available in the current draft.
+
+Consumption state is presentation derived from the existing legal/draft model. It does not introduce new move semantics.
+
+For doubles, the UI must clearly communicate four available uses without requiring four large physical dice. The preferred direction is to keep the normal dice pair and add four compact use/consumption indicators. Exact visual treatment may be tuned during implementation.
+
+## Classic Backgammon opening roll
+
+Classic Backgammon opening roll is a special presentation state matching the existing authoritative game rule.
+
+The client does not show a normal `Roll Dice` action for that opening determination.
+
+Instead:
+
+- the opening values are generated authoritatively;
+- presentation may identify one die with each player while the higher value determines the starting player;
+- the result is briefly revealed in the Board Scene;
+- the starting player's first turn continues using the authoritative opening dice according to the existing game-engine rules;
+- the client must not locally reroll, select the starter or reinterpret the opening result.
+
+## Dice cosmetics boundary
+
+Dice presentation must respect the cosmetic architecture in `22-board-scene-cosmetics-architecture.md`.
+
+The current hybrid direction is:
+
+- one visible die uses the local participant's resolved Dice Skin;
+- the other visible die uses the opponent participant's resolved Dice Skin;
+- `Default` is used as fallback;
+- dice geometry and placement remain application-controlled;
+- authoritative value/pip readability remains application-controlled and cannot be weakened by a skin.
+
+Dice skins may alter presentation but must never affect result generation, result interpretation, hit targets, animation timing semantics or Board Scene geometry.
+
 ## Reactions and match menu
 
 Reactions use one compact trigger rather than multiple permanently visible reaction buttons.
