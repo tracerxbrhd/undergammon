@@ -227,9 +227,8 @@ test('player buys, equips, and removes a permanent profile frame', async ({ brow
   const bronzeFrame = page.locator('.cosmetic-card', { hasText: 'Bronze Frame' });
   await expect(bronzeFrame).toBeVisible();
   await bronzeFrame.getByRole('button', { name: 'Equip', exact: true }).click();
-  await expect(
-    bronzeFrame.getByRole('button', { name: 'Equipped', exact: true }),
-  ).toBeDisabled();
+  const equippedBronze = bronzeFrame.getByRole('button', { name: 'Equipped', exact: true });
+  await expect(equippedBronze).toBeDisabled();
   await navigation.getByRole('button', { name: /Profile/ }).click();
   await expect(page.locator('.profile-avatar')).toHaveClass(/profile-frame-bronze/);
 
