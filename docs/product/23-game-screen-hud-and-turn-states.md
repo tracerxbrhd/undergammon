@@ -1,0 +1,138 @@
+# 23 — Game Screen HUD and Turn States
+
+Status: accepted UX/UI v2 decisions, implementation pending
+
+## Purpose
+
+This document defines the accepted HUD and turn-state behavior for the UNDERGAMMON active Game Screen.
+
+It complements:
+
+- `06-match-lifecycle-reconnect-timeouts.md` for authoritative match lifecycle;
+- `07-game-board-ux.md` for interaction and board presentation;
+- `21-miniapp-ux-ui-v2.md` for the overall Mini App v2 composition;
+- `22-board-scene-cosmetics-architecture.md` for board/cosmetic boundaries.
+
+## Core layout
+
+The Game Screen remains a viewport-locked, non-scrollable game surface.
+
+Its portrait structure is stable:
+
+```text
+Opponent PlayerStrip
+Board Scene
+Local PlayerStrip
+ActionDock
+safe-area-bottom
+```
+
+The Board Scene is the dominant surface. HUD elements must remain compact and must not introduce a separate status row between the player strips and the board.
+
+## PlayerStrip baseline
+
+Each player has one compact `PlayerStrip` that remains visible for the duration of the active match.
+
+Permanent identity information:
+
+- avatar;
+- nickname;
+- relevant ruleset rating;
+- connection/reconnect status when relevant.
+
+The active player's strip additionally communicates:
+
+- active-turn emphasis;
+- authoritative remaining turn time.
+
+Account Level, Coins, XP, match ID, detailed statistics and other secondary information are not part of the permanent match HUD.
+
+## Timer placement
+
+The authoritative turn timer belongs to the `PlayerStrip` of the player whose turn is active.
+
+Accepted behavior:
+
+- there is no separate central/global timer row;
+- the timer appears in a stable reserved location inside the active player's strip;
+- when turn ownership changes, the timer moves semantically to the other player's strip rather than creating a new HUD element;
+- the strip itself does not resize when the timer appears/disappears;
+- inactive strips preserve their geometry;
+- timer typography should use tabular numerals where available to avoid width jitter.
+
+The timer should be visually associated with the active player so ownership of the countdown is immediately obvious.
+
+## Timer warning states
+
+Timer presentation may increase emphasis as the deadline approaches, but it must remain restrained.
+
+Preferred direction:
+
+- normal state for most of the turn;
+- warning emphasis around the final ~15 seconds;
+- critical emphasis around the final ~10 seconds.
+
+Exact thresholds may be tuned during implementation, but the UI must not flash aggressively or change layout.
+
+The timer remains presentation-only. The server-provided `turnStartsAt` / deadline remains authoritative.
+
+## ActionDock baseline
+
+The `ActionDock` owns a stable region below the local player strip.
+
+Its contents are phase-aware, but its allocated geometry must not move the Board Scene.
+
+Conceptual states:
+
+```text
+WAITING_FOR_ROLL
+[ Reaction ] [              Roll Dice              ]
+
+AWAITING_MOVE
+[ Reaction ] [ Undo ] [        Confirm Turn       ]
+
+OPPONENT_TURN
+[ Reaction ] [           Opponent's turn          ]
+
+PRESENTING_COMMITTED_MOVE
+[ Reaction ] [              Presenting             ]
+
+RECONNECTING / CONTROL_LOST
+[                state-specific control/status     ]
+```
+
+`Roll Dice` and `Confirm Turn` should reuse the same dominant primary-action region where practical so the dock does not jump between phases.
+
+## Reactions and match menu
+
+Reactions use one compact trigger rather than multiple permanently visible reaction buttons.
+
+The compact match menu remains available through a small overflow control, normally associated with the upper/opponent side of the HUD.
+
+Surrender is not a permanent action-dock control. It belongs in the match menu and requires confirmation.
+
+## Connection states
+
+Connection state must not replace the whole HUD or board.
+
+- local reconnect: keep the last authoritative board visible, lock gameplay input, show compact reconnecting status;
+- opponent reconnect: represent primarily on the opponent `PlayerStrip`, optionally including authoritative reconnect deadline/countdown when available;
+- `CONTROL_LOST`: distinguish clearly from transport loss and expose the existing Take control flow when allowed;
+- `WAITING_FOR_PLAYERS`: remain inside the same fixed Game Screen geometry; no Ready button is added.
+
+## Geometry invariant
+
+Changes between at least the following states must not resize or vertically shift the Board Scene:
+
+- waiting for players;
+- waiting for roll;
+- local draft;
+- local confirm;
+- opponent turn;
+- committed-move presentation;
+- local reconnect;
+- opponent reconnect;
+- control lost;
+- match finished transition.
+
+The screen may change visual emphasis and control availability, but not its structural layout.
