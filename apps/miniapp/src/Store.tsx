@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import type { StoreProduct, StorePurchaseResult } from '@undergammon/protocol';
 import { api, platform } from './platform';
 import type { Language } from './content';
-import { resolveProfileFrame } from './game/cosmetics';
+import { EmptyStateIcon, RetryIcon } from './ui/icons';
+import { ProfileFramePreview } from './ui/ProfileFramePreview';
+
+interface Notice {
+  readonly kind: 'success' | 'error';
+  readonly text: string;
+}
 
 export function Store({
   language,
@@ -15,13 +21,33 @@ export function Store({
 }) {
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [pending, setPending] = useState<string | null>(null);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
-    void api<StoreProduct[]>('/store').then(setProducts);
-  }, []);
+    let active = true;
+    setLoading(true);
+    setLoadError(false);
+    void api<StoreProduct[]>('/store')
+      .then((items) => {
+        if (active) setProducts(items);
+      })
+      .catch(() => {
+        if (active) setLoadError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
+
   const buy = async (cosmeticId: string) => {
     setPending(cosmeticId);
-    setNotice('');
+    setNotice(null);
     try {
       const result = await api<StorePurchaseResult>('/store/purchase', 'POST', { cosmeticId });
       onBalance(result.balance);
@@ -29,21 +55,27 @@ export function Store({
         current.map((product) => (product.cosmeticId === cosmeticId ? result.product : product)),
       );
       platform.haptic();
-      setNotice(language === 'ru' ? 'Покупка завершена' : 'Purchase complete');
+      setNotice({
+        kind: 'success',
+        text: language === 'ru' ? 'Покупка завершена' : 'Purchase complete',
+      });
     } catch (error) {
-      setNotice(
-        error instanceof Error && error.message === 'INSUFFICIENT_COINS'
-          ? language === 'ru'
-            ? 'Недостаточно монет'
-            : 'Insufficient Coins'
-          : language === 'ru'
-            ? 'Не удалось купить'
-            : 'Purchase failed',
-      );
+      setNotice({
+        kind: 'error',
+        text:
+          error instanceof Error && error.message === 'INSUFFICIENT_COINS'
+            ? language === 'ru'
+              ? 'Недостаточно монет'
+              : 'Insufficient Coins'
+            : language === 'ru'
+              ? 'Не удалось купить'
+              : 'Purchase failed',
+      });
     } finally {
       setPending(null);
     }
   };
+
   return (
     <section aria-labelledby="store-title">
       <div className="page-title commerce-title">
@@ -55,43 +87,89 @@ export function Store({
           {coins} {language === 'ru' ? 'Монет' : 'Coins'}
         </strong>
       </div>
-      <h2 className="section-label">{language === 'ru' ? 'Рамки' : 'Frames'}</h2>
-      <div className="cosmetic-grid">
-        {products.map((product) => (
-          <article className="cosmetic-card glass" key={product.cosmeticId}>
-            <span
-              className={`cosmetic-preview ${resolveProfileFrame(product.cosmeticId).className}`}
+      <h2 className="section-label">{language === 'ru' ? 'Рамки профиля' : 'Profile Frames'}</h2>
+
+      {loading ? (
+        <div className="cosmetic-grid" aria-label={language === 'ru' ? 'Загрузка' : 'Loading'}>
+          <CosmeticSkeleton />
+        </div>
+      ) : loadError ? (
+        <div className="commerce-state-card" role="alert">
+          <RetryIcon />
+          <h3>{language === 'ru' ? 'Магазин недоступен' : 'Store unavailable'}</h3>
+          <p>
+            {language === 'ru'
+              ? 'Не удалось загрузить каталог. Попробуйте ещё раз.'
+              : 'The catalog could not be loaded. Try again.'}
+          </p>
+          <button onClick={() => setReloadKey((value) => value + 1)}>
+            {language === 'ru' ? 'Повторить' : 'Retry'}
+          </button>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="commerce-state-card">
+          <EmptyStateIcon />
+          <h3>{language === 'ru' ? 'Пока пусто' : 'Nothing here yet'}</h3>
+          <p>
+            {language === 'ru'
+              ? 'Доступные предметы появятся здесь.'
+              : 'Available items will appear here.'}
+          </p>
+        </div>
+      ) : (
+        <div className="cosmetic-grid">
+          {products.map((product) => (
+            <article
+              className={`cosmetic-card polished-card ${product.owned ? 'owned' : ''}`}
+              key={product.cosmeticId}
             >
-              UG
-            </span>
-            <div>
-              <h3>{language === 'ru' ? 'Бронзовая рамка' : 'Bronze Frame'}</h3>
-              <small>
-                {product.priceCoins} {language === 'ru' ? 'Монет' : 'Coins'}
-              </small>
-            </div>
-            <button
-              disabled={product.owned || pending !== null}
-              onClick={() => void buy(product.cosmeticId)}
-            >
-              {product.owned
-                ? language === 'ru'
-                  ? 'Куплено'
-                  : 'Owned'
-                : pending === product.cosmeticId
-                  ? '…'
-                  : language === 'ru'
-                    ? 'Купить'
-                    : 'Buy'}
-            </button>
-          </article>
-        ))}
-      </div>
+              <ProfileFramePreview cosmeticId={product.cosmeticId} />
+              <div className="cosmetic-card-copy">
+                <h3>{language === 'ru' ? 'Бронзовая рамка' : 'Bronze Frame'}</h3>
+                <small>
+                  {product.priceCoins} {language === 'ru' ? 'Монет' : 'Coins'}
+                </small>
+                <p>
+                  {language === 'ru'
+                    ? 'Постоянная рамка профиля.'
+                    : 'Permanent profile frame.'}
+                </p>
+              </div>
+              {product.owned ? (
+                <span className="cosmetic-state owned">
+                  {language === 'ru' ? 'Куплено' : 'Owned'}
+                </span>
+              ) : (
+                <button disabled={pending !== null} onClick={() => void buy(product.cosmeticId)}>
+                  {pending === product.cosmeticId
+                    ? language === 'ru'
+                      ? 'Покупка…'
+                      : 'Buying…'
+                    : language === 'ru'
+                      ? 'Купить'
+                      : 'Buy'}
+                </button>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+
       {notice && (
-        <p className="commerce-notice" role="status">
-          {notice}
+        <p className={`commerce-notice ${notice.kind}`} role="status">
+          {notice.text}
         </p>
       )}
     </section>
+  );
+}
+
+function CosmeticSkeleton() {
+  return (
+    <div className="cosmetic-skeleton" aria-hidden="true">
+      <span />
+      <div />
+      <i />
+    </div>
   );
 }
