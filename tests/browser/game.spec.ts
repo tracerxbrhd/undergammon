@@ -180,7 +180,14 @@ test('player buys, equips, and removes a permanent profile frame', async ({ brow
   await telegram(context, 1);
   const page = await context.newPage();
   await page.goto('/');
-  const me = await page.evaluate(async () => (await fetch('/api/me')).json() as { id: string });
+  await expect(page.locator('button.primary', { hasText: 'Find a player' })).toBeVisible();
+  const me = await page.evaluate(async () => {
+    const response = await fetch('/api/me');
+    if (!response.ok)
+      throw new Error(`Could not load /api/me: ${response.status} ${await response.text()}`);
+    return (await response.json()) as { id: string };
+  });
+  expect(me.id).toBeTruthy();
   await page.evaluate(async (accountId) => {
     const response = await fetch('/api/admin/adjust', {
       method: 'POST',
@@ -193,7 +200,8 @@ test('player buys, equips, and removes a permanent profile frame', async ({ brow
         value: 200,
       }),
     });
-    if (!response.ok) throw new Error('Could not seed Coins');
+    if (!response.ok)
+      throw new Error(`Could not seed Coins: ${response.status} ${await response.text()}`);
   }, me.id);
   await page.reload();
 
@@ -208,6 +216,8 @@ test('player buys, equips, and removes a permanent profile frame', async ({ brow
   await navigation.getByRole('button', { name: /Store/ }).click();
   await expect(page.getByRole('heading', { name: 'Store' })).toBeVisible();
   await expect(page.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await expect(page.getByText('200 Coins')).toBeVisible();
+  await expect(page.getByText('150 Coins')).toBeVisible();
   await page.getByRole('button', { name: 'Buy' }).click();
   await expect(page.getByRole('button', { name: 'Owned' })).toBeDisabled();
   await expect(page.getByText('50 Coins')).toBeVisible();
