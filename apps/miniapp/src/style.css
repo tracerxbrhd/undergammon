@@ -988,7 +988,7 @@ pre {
 .game-screen > .error {
   position: absolute;
   z-index: 50;
-  top: 70px;
+  top: calc(70px + var(--app-content-safe-top));
   left: 50%;
   width: min(90%, 400px);
   transform: translateX(-50%);
