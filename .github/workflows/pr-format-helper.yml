@@ -1,0 +1,35 @@
+name: PR Format Helper
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: npm install --global pnpm@12.4.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr-1-5-formatted
+          path: |
+            apps/miniapp/src/Cosmetics.tsx
+            apps/miniapp/src/Game.tsx
+            apps/miniapp/src/PublicProfile.tsx
+            apps/miniapp/src/Store.tsx
+            apps/miniapp/src/app/navigation.tsx
+            apps/miniapp/src/main.tsx
+            apps/miniapp/src/styles/polish.css
+            apps/miniapp/src/ui/ProfileFramePreview.tsx
+            apps/miniapp/src/ui/icons.tsx
+            tests/browser/game.spec.ts
