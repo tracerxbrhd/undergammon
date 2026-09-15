@@ -1,6 +1,6 @@
 # 26 — Play Home and Match Entry UX
 
-Status: accepted UX/UI v2 decision, implementation pending
+Status: accepted UX/UI v2 decision; core Play/Home and matchmaking entry flow is implemented.
 
 ## Purpose
 
@@ -96,6 +96,8 @@ These should be visible and mutually exclusive without requiring a secondary con
 
 Selecting Friend changes the primary CTA to challenge creation; selecting Find Player changes it to matchmaking.
 
+AI is intentionally deferred and must not appear as a usable opponent option or placeholder in the current Season 0 Play flow.
+
 ## Ranked context
 
 Ranked exposes only matchmaking.
@@ -154,7 +156,7 @@ Home uses the shared `AppShell` and bottom navigation from `25-miniapp-navigatio
 
 `Play` is the selected central primary destination and receives the strongest visual emphasis.
 
-No empty placeholder tabs are shown for future Store/Social/etc destinations.
+The current shell also exposes the real Update 1 Store and Cosmetics destinations. No empty placeholder tabs are shown for speculative future destinations such as Social or Events.
 
 Focused matchmaking flow hides the bottom navigation while the queue is active.
 
@@ -164,9 +166,9 @@ This Home redesign does not introduce:
 
 - a multi-step match setup wizard;
 - AI placeholders when AI is not usable;
-- Store widgets;
+- embedded Store widgets on Play/Home;
 - achievements panels;
-- daily rewards panels;
+- daily-reward panels that displace the match-entry flow;
 - news/feed content;
 - detailed match analytics;
 - speculative matchmaking controls unsupported by the backend;
