@@ -88,7 +88,7 @@ The architecture does not prevent adding them later. For Season 0:
 - PostgreSQL data lives in a persistent Docker volume;
 - the operator can create manual `pg_dump` backups and store them outside the VPS;
 - backup files must never be committed to the repository;
-- manual backup and restore procedures are documented in `README.md`.
+- manual backup and restore procedures are documented in [`docs/operations/README.md`](../operations/README.md).
 
 Loss of the VPS or its storage can still result in data loss until off-site automated backups are introduced. This risk is explicitly accepted for early testing.
 
