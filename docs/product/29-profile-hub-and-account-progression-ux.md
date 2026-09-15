@@ -1,6 +1,6 @@
 # 29 — Profile Hub and Account Progression UX
 
-Status: accepted UX/UI v2 decision, implementation pending
+Status: accepted UX/UI v2 decision; Profile hub/progression baseline is substantially implemented, with Update 1 cosmetics presented through dedicated Store/Cosmetics destinations and Profile identity surfaces.
 
 ## Purpose
 
@@ -26,7 +26,7 @@ Conceptually:
 ```text
 Profile
 
-[ avatar ]
+[ avatar + equipped Profile Frame ]
 Nickname
 Level 12
 
@@ -48,19 +48,22 @@ Technical / Account  >
 Admin                >   // authorized accounts only
 ```
 
-Exact visual composition is part of the later visual-system pass, but this hierarchy is accepted.
+Exact visual composition may continue to evolve, but this hierarchy is accepted.
 
 ## Account identity
 
 The main identity block contains:
 
 - avatar;
+- equipped Profile Frame presentation;
 - nickname;
 - Account Level.
 
 Coins and XP are persistent account progression/economy context and should be visible without turning the page into an economy dashboard.
 
 Telegram identity must not replace the internal game-account identity.
+
+Store and Cosmetics are separate primary destinations in the current five-tab shell. Profile presents equipped identity cosmetics but does not duplicate the Store or full equipment UI.
 
 ## XP progress bar
 
@@ -77,32 +80,22 @@ Level 12
 18 420 total XP
 ```
 
-Exact copy/units may be tuned, but the underlying values must be authoritative and consistent with the result-screen progression animation.
+Exact copy/units may be tuned, but the underlying values must remain authoritative and consistent with result-screen progression.
 
-### Progression contract requirement
+### Progression contract
 
-The frontend must not duplicate the server-only Account Level curve merely to calculate progress-bar boundaries.
+The frontend does not duplicate the server Account Level curve to calculate progress-bar boundaries.
 
-The current profile contract exposes `totalXp` and derived `level`, while the server owns `levelFromXp(...)` policy.
-
-Before implementing the progress bar, expose enough authoritative/shared progression metadata for the client to render the current interval safely.
-
-A suitable semantic contract may include values such as:
+The shared profile contract exposes `totalXp`, derived `level`, and authoritative `LevelProgress` data including:
 
 ```text
-level
-currentLevelStartXp
-nextLevelStartXp
+levelStartTotalXp
+nextLevelTotalXp
 xpIntoLevel
 xpRequiredForNextLevel
-progressFraction
 ```
 
-The exact field set is an implementation/API design decision. It is not necessary to expose all of them if some can be derived trivially from authoritative thresholds.
-
-The essential invariant is that the Mini App does not maintain a second independently editable XP-curve formula.
-
-The same progression model should be reusable by `24-match-result-and-progression-ux.md` so Profile and post-match animations cannot disagree.
+The same progression semantics are used by `MatchResultProgression` for before/after match result presentation, so Profile and post-match progression do not need independent XP-curve policy.
 
 ## Rating cards
 
@@ -167,17 +160,16 @@ The Profile item is selected while this screen is active.
 
 Secondary Profile destinations may use normal push/back navigation while retaining the shell conventions established for non-game screens.
 
-## Non-goals
+## Scope guard
 
-This Profile baseline does not introduce:
+The Profile hub itself does not embed:
 
-- achievements;
-- badges inventory;
+- a duplicate Store;
+- a duplicate full cosmetic loadout editor;
+- achievements inventory;
 - social/friends graph;
-- Store;
-- cosmetic loadout editor;
 - seasonal battle-pass presentation;
 - gameplay advantages from level;
 - duplicated client-side XP policy.
 
-Those may be added later if accepted as separate product scope.
+Store and Cosmetics already exist as separate Update 1 primary destinations. Broader cosmetic categories, achievements/social systems and battle-pass features remain separate future product scope.
