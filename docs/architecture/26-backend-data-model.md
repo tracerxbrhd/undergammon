@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for the initial UNDERGAMMON architecture.
+Accepted for the initial UNDERGAMMON architecture and evolved through the current Season 0 migrations.
 
 ## Core principles
 
@@ -11,30 +11,32 @@ Accepted for the initial UNDERGAMMON architecture.
 - Relational columns are used for data that must be queried, constrained, joined, ranked, or aggregated.
 - Authoritative game state is stored as a versioned JSONB snapshot because the board state is a complex domain object and does not benefit from being decomposed into point/checker SQL rows.
 - Match state changes that affect progression, economy, rating, or statistics must be committed atomically.
-- Redis is not required for the initial architecture.
+- Coin spending/reward changes, cosmetic ownership/equipment and Daily Reward claims are server-authoritative transactional state.
+- Redis is not required for the current single-server architecture.
 
 ## Primary entities
 
-Initial logical model:
+Current logical model includes:
 
-- `game_accounts`
-- `account_identities`
-- `sessions`
-- `profiles`
-- `account_progression`
-- `seasons`
-- `ratings`
-- `matches`
-- `match_players`
-- `match_events`
-- `challenges`
-- `matchmaking_entries`
-- `coin_ledger`
-- `cosmetic_ownership`
-- `daily_reward_claims`
-- `admin_audit_log`
+- `game_accounts` / account-domain storage;
+- `account_identities`;
+- `sessions`;
+- `profiles`;
+- `account_progression`;
+- `seasons`;
+- `ratings`;
+- `matches`;
+- `match_players`;
+- `match_events`;
+- `challenges`;
+- `matchmaking_entries`;
+- `coin_ledger`;
+- `cosmetic_ownership`;
+- `cosmetic_equipment`;
+- `daily_reward_claims`;
+- `admin_audit_log`.
 
-Exact table and column names may evolve during implementation, but the domain boundaries should remain explicit.
+Exact physical table/column names may differ from these logical names as the schema evolves, but the domain boundaries remain explicit and versioned through committed migrations.
 
 ## Game accounts and identities
 
@@ -61,28 +63,32 @@ Profile data is separated from authentication identity.
 
 The profile contains the public pseudonymous representation such as nickname and curated avatar selection. Telegram profile data is not automatically exposed publicly.
 
+Equipped trusted cosmetic identity data is resolved from backend ownership/equipment state rather than accepted from arbitrary client claims.
+
 ## Seasons and ratings
 
 Ratings are stored per:
 
-- Game Account,
-- ruleset,
+- Game Account;
+- ruleset;
 - season.
 
-The model must support initial calibration, seasonal calibration, current rating, peak rating, match count, and leaderboard eligibility without coupling those concerns to the match snapshot.
+The model supports initial calibration, current rating, peak rating, match count, and leaderboard eligibility without coupling those concerns to the match snapshot.
+
+Future normal-season rollover/recalibration policy remains separate from the persistence boundary.
 
 ## Match persistence
 
 `matches` contains relational metadata such as:
 
-- internal match ID,
-- ruleset,
-- mode,
-- lifecycle status,
-- finish reason,
-- authoritative `stateVersion`,
-- versioned authoritative state snapshot,
-- turn/deadline timestamps,
+- internal match ID;
+- ruleset;
+- mode;
+- lifecycle status;
+- finish reason;
+- authoritative `stateVersion`;
+- versioned authoritative state snapshot;
+- turn/deadline timestamps;
 - created/started/finished timestamps.
 
 Players are represented through `match_players` so match ownership and result information remain queryable without decoding the game snapshot.
@@ -91,7 +97,7 @@ Players are represented through `match_players` so match ownership and result in
 
 The authoritative game state is stored in JSONB together with a schema version.
 
-The game-engine owns the semantic structure. Database code must not duplicate game rules or interpret board coordinates independently.
+The game engine owns the semantic structure. Database code must not duplicate game rules or interpret board coordinates independently.
 
 Stored snapshots must be sufficient to restore an ACTIVE match after a normal server restart.
 
@@ -103,14 +109,14 @@ UNDERGAMMON does not use full event sourcing as its primary persistence model. T
 
 Typical events may include:
 
-- match created,
-- opening roll resolved,
-- dice rolled,
-- turn committed,
-- reconnect/disconnect lifecycle changes,
-- surrender,
-- timeout,
-- match completion,
+- match created;
+- opening roll resolved;
+- dice rolled;
+- turn committed;
+- reconnect/disconnect lifecycle changes;
+- surrender;
+- timeout;
+- match completion;
 - NO_CONTEST transition.
 
 ## Atomic match finalization
@@ -138,16 +144,42 @@ A `NO_CONTEST` caused by confirmed UNDERGAMMON infrastructure failure does not m
 
 Coins use an append-only ledger rather than treating a mutable balance as the only source of truth.
 
-Ledger entries must distinguish meaningful sources such as:
+Ledger entries distinguish meaningful sources such as:
 
-- ranked reward,
-- streak reward,
-- seasonal reward,
-- future achievement/event reward,
-- cosmetic purchase,
+- ranked reward;
+- streak reward;
+- Daily Reward;
+- future seasonal/achievement/event rewards;
+- cosmetic purchase;
 - admin adjustment.
 
 A cached/current balance may be maintained for efficient reads, but it must remain transactionally consistent with ledger operations.
+
+Store purchase spends Coins and grants permanent ownership in one authoritative transaction; the client does not mutate balance or ownership optimistically as a source of truth.
+
+## Cosmetics ownership and equipment
+
+Season 0 Update 1 introduced explicit persistent cosmetic state:
+
+- `cosmetic_ownership` records permanent ownership by account, slot and cosmetic ID together with acquisition source/reference;
+- `cosmetic_equipment` records at most one equipped cosmetic per account/slot and references a corresponding owned cosmetic;
+- backend validation prevents equipping unowned or slot-incompatible cosmetics;
+- Store purchase does not auto-equip;
+- selecting `Default` is represented as the absence of a non-default equipment row where applicable.
+
+The physical migration schema anticipates accepted cosmetic slot names, while the current application/protocol catalog exposes `PROFILE_FRAME` as the functional Update 1 slot. Future slots must not be treated as implemented content merely because the database check constraint can represent them.
+
+## Daily Reward
+
+`daily_reward_claims` persists explicit Daily Reward claims with:
+
+- account;
+- UTC claim date;
+- cycle day;
+- awarded Coin amount;
+- creation timestamp.
+
+A uniqueness constraint on `(account_id, claim_date)` enforces at most one claim per account per UTC calendar day. Claim persistence and Coin ledger crediting occur transactionally on the backend.
 
 ## Matchmaking and challenges
 
@@ -155,7 +187,7 @@ Private challenges and matchmaking queue entries are explicit persisted entities
 
 Challenge acceptance must support atomic first-valid-accept-wins semantics.
 
-For the initial single-server deployment, live socket/session routing can remain in process memory, but durable challenge/match state belongs in PostgreSQL.
+For the current single-server deployment, live socket/session routing can remain in process memory, but durable challenge/match state belongs in PostgreSQL.
 
 ## Account deletion
 
@@ -180,14 +212,16 @@ Privileged mutations such as sanctions, nickname resets, rating adjustments, Coi
 
 Production schema changes are performed through versioned Drizzle migrations as established in the deployment architecture. Direct manual schema editing is an emergency-only operation.
 
+The current Season 0 migration chain includes the cosmetic ownership/equipment and Daily Reward persistence required by Update 1.
+
 ## Non-goals
 
-The initial data model does not introduce:
+The current data model does not introduce:
 
-- generic multi-game platform abstractions,
-- microservice-owned databases,
-- Redis-backed authoritative match state,
-- full event sourcing,
-- arbitrary user-uploaded assets,
-- a second premium currency,
+- generic multi-game platform abstractions;
+- microservice-owned databases;
+- Redis-backed authoritative match state;
+- full event sourcing;
+- arbitrary user-uploaded assets;
+- a second premium currency;
 - durable storage of UI-only/transient animation state.
