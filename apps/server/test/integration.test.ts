@@ -8,6 +8,7 @@ import { MatchService } from '../src/matches.js';
 import { buildServer } from '../src/app.js';
 import { signedInitData } from './helpers.js';
 import type { Command, MatchSnapshot } from '@undergammon/protocol';
+import { grantSeason0TesterFrame } from '../src/cosmetics.js';
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('PostgreSQL integration', () => {
   const pool = createPool(url ?? 'postgresql://unused');
@@ -134,6 +135,105 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
       ),
     ).toBe(true);
     expect(await rows(pool, 'SELECT * FROM match_players WHERE unfinished')).toHaveLength(0);
+    expect(await rows(pool, 'SELECT * FROM cosmetic_ownership')).toHaveLength(0);
+  });
+  it('grants and auto-equips the Season 0 frame for both participants idempotently', async () => {
+    const s = await make();
+    expect(s.players.A.cosmetics?.profileFrame).toBe('default');
+    expect(s.players.B.cosmetics?.profileFrame).toBe('default');
+    await transaction(pool, async (db) => {
+      await service.finish(db, s, 'A', 'BEAR_OFF');
+      await service.save(db, s, 'FINISHED');
+    });
+    await transaction(pool, async (db) => {
+      const persisted = await service.load(db, s.id);
+      await service.finish(db, persisted, 'A', 'BEAR_OFF');
+    });
+    const ownership = await rows<{ account_id: string; source_reference: string }>(
+      pool,
+      "SELECT account_id,source_reference FROM cosmetic_ownership WHERE cosmetic_id='season0_tester_frame' ORDER BY account_id",
+    );
+    expect(ownership).toHaveLength(2);
+    expect(ownership.map((row) => row.account_id).sort()).toEqual([user(0), user(1)].sort());
+    expect(ownership.every((row) => row.source_reference === s.id)).toBe(true);
+    expect(await rows(pool, 'SELECT * FROM cosmetic_equipment')).toHaveLength(2);
+  });
+  it('does not re-equip an already-owned frame after it is intentionally unequipped', async () => {
+    const firstGrant = await transaction(pool, (db) =>
+      grantSeason0TesterFrame(db, user(0), randomUUID()),
+    );
+    expect(firstGrant).toBe(true);
+    expect(
+      await rows(pool, 'SELECT * FROM cosmetic_equipment WHERE account_id=$1', [user(0)]),
+    ).toHaveLength(1);
+
+    await pool.query(
+      "DELETE FROM cosmetic_equipment WHERE account_id=$1 AND slot='PROFILE_FRAME'",
+      [user(0)],
+    );
+    const repeatedGrant = await transaction(pool, (db) =>
+      grantSeason0TesterFrame(db, user(0), randomUUID()),
+    );
+
+    expect(repeatedGrant).toBe(false);
+    expect(
+      await rows(pool, 'SELECT * FROM cosmetic_ownership WHERE account_id=$1', [user(0)]),
+    ).toHaveLength(1);
+    expect(
+      await rows(pool, 'SELECT * FROM cosmetic_equipment WHERE account_id=$1', [user(0)]),
+    ).toHaveLength(0);
+  });
+  it('captures trusted equipped cosmetics in each newly created match snapshot', async () => {
+    const qualifying = await make();
+    await transaction(pool, async (db) => {
+      await service.finish(db, qualifying, 'A', 'BEAR_OFF');
+      await service.save(db, qualifying, 'FINISHED');
+    });
+
+    const subsequent = await transaction(pool, (db) =>
+      service.create(db, user(0), user(2), 'LONG_NARDY', 'CASUAL'),
+    );
+    expect(subsequent.players.A.cosmetics?.profileFrame).toBe('season0_tester_frame');
+    expect(subsequent.players.B.cosmetics?.profileFrame).toBe('default');
+    expect(qualifying.players.A.cosmetics?.profileFrame).toBe('default');
+  });
+  it('preserves existing equipment and stops runtime grants after Season 0', async () => {
+    await pool.query(
+      "INSERT INTO cosmetic_ownership(account_id,slot,cosmetic_id,source,source_reference) VALUES($1,'PROFILE_FRAME','future_frame','TEST','test')",
+      [user(0)],
+    );
+    await pool.query(
+      "INSERT INTO cosmetic_equipment(account_id,slot,cosmetic_id) VALUES($1,'PROFILE_FRAME','future_frame')",
+      [user(0)],
+    );
+    const first = await make();
+    await transaction(pool, async (db) => {
+      await service.finish(db, first, 'A', 'SURRENDER');
+      await service.save(db, first, 'FINISHED');
+    });
+    expect(
+      (
+        await rows<{ cosmetic_id: string }>(
+          pool,
+          'SELECT cosmetic_id FROM cosmetic_equipment WHERE account_id=$1',
+          [user(0)],
+        )
+      )[0]?.cosmetic_id,
+    ).toBe('future_frame');
+    await pool.query('UPDATE seasons SET ended_at=now() WHERE id=0');
+    const second = await transaction(pool, (db) =>
+      service.create(db, user(2), user(3), 'BACKGAMMON', 'CASUAL'),
+    );
+    await transaction(pool, async (db) => {
+      await service.finish(db, second, 'B', 'TIMEOUT');
+      await service.save(db, second, 'FINISHED');
+    });
+    expect(
+      await rows(pool, 'SELECT 1 FROM cosmetic_ownership WHERE account_id=ANY($1::uuid[])', [
+        [user(2), user(3)],
+      ]),
+    ).toHaveLength(0);
+    await pool.query('UPDATE seasons SET ended_at=NULL WHERE id=0');
   });
   it('rolls back result and all rewards on transaction failure', async () => {
     const s = await make();
@@ -146,6 +246,8 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
     ).rejects.toThrow();
     expect((await service.load(pool, s.id)).status).toBe('WAITING_FOR_PLAYERS');
     expect(await rows(pool, 'SELECT * FROM coin_ledger')).toHaveLength(0);
+    expect(await rows(pool, 'SELECT * FROM cosmetic_ownership')).toHaveLength(0);
+    expect(await rows(pool, 'SELECT * FROM cosmetic_equipment')).toHaveLength(0);
     expect(
       (await rows<{ played: number }>(pool, 'SELECT played FROM ratings')).every(
         (r) => r.played === 0,
@@ -218,6 +320,33 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
       payload: { ruleset: 'BACKGAMMON', mode: 'RANKED' },
     });
     expect(cross.statusCode).toBe(403);
+    await app.close();
+  });
+  it('returns trusted equipped cosmetics from own and public profiles', async () => {
+    const s = await make();
+    await transaction(pool, async (db) => {
+      await service.finish(db, s, 'A', 'BEAR_OFF');
+      await service.save(db, s, 'FINISHED');
+    });
+    const { app } = await buildServer(pool, config);
+    await app.ready();
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth',
+      headers: { host: 'localhost:5173', origin: config.PUBLIC_ORIGIN },
+      payload: { initData: signedInitData(1, config.BOT_TOKEN) },
+    });
+    const cookie = login.cookies[0];
+    expect(cookie).toBeDefined();
+    const headers = { host: 'localhost:5173', cookie: `ug_session=${cookie?.value}` };
+    const own = await app.inject({ method: 'GET', url: '/api/me', headers });
+    const publicProfile = await app.inject({
+      method: 'GET',
+      url: `/api/profiles/${user(1)}`,
+      headers,
+    });
+    expect(own.json().cosmetics).toEqual({ profileFrame: 'season0_tester_frame' });
+    expect(publicProfile.json().cosmetics).toEqual({ profileFrame: 'season0_tester_frame' });
     await app.close();
   });
   it('recovers short restarts without resetting turn clocks', async () => {

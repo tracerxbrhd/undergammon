@@ -21,8 +21,12 @@ describe('resolveMatchCosmetics', () => {
   });
 
   it('keeps local and opponent ownership aligned when perspective changes', () => {
-    const viewedByA = resolveMatchCosmetics({ localSeat: 'A' });
-    const viewedByB = resolveMatchCosmetics({ localSeat: 'B' });
+    const players = {
+      A: { cosmetics: { profileFrame: 'season0_tester_frame' as const } },
+      B: { cosmetics: { profileFrame: 'default' as const } },
+    };
+    const viewedByA = resolveMatchCosmetics({ localSeat: 'A', players });
+    const viewedByB = resolveMatchCosmetics({ localSeat: 'B', players });
 
     expect(viewedByA.board.localTheme.ownerSeat).toBe('A');
     expect(viewedByA.board.opponentTheme.ownerSeat).toBe('B');
@@ -34,5 +38,14 @@ describe('resolveMatchCosmetics', () => {
     expect(viewedByB.checkers.opponentSet.ownerSeat).toBe('A');
     expect(viewedByB.profile.localFrame.ownerSeat).toBe('B');
     expect(viewedByB.profile.opponentFrame.ownerSeat).toBe('A');
+    expect(viewedByA.profile.localFrame.presentation.id).toBe('season0_tester_frame');
+    expect(viewedByB.profile.opponentFrame.presentation.id).toBe('season0_tester_frame');
+    expect(viewedByA.profile.opponentFrame.presentation.id).toBe('default');
+  });
+
+  it('falls back to Default for legacy players without cosmetic data', () => {
+    const result = resolveMatchCosmetics({ localSeat: 'A', players: { A: {}, B: {} } });
+    expect(result.profile.localFrame.presentation.id).toBe('default');
+    expect(result.profile.opponentFrame.presentation.id).toBe('default');
   });
 });

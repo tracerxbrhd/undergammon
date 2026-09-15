@@ -378,6 +378,17 @@ strong,
   margin: auto;
   font-size: 44px;
 }
+.profile-frame-season0-tester {
+  box-shadow:
+    0 0 0 2px #d3a94f,
+    0 0 0 4px color-mix(in srgb, #d3a94f 24%, transparent),
+    inset 0 0 0 1px rgb(255 239 184 / 35%);
+}
+.player-strip.profile-frame-season0-tester {
+  box-shadow:
+    inset 3px 0 0 #d3a94f,
+    inset 0 0 0 1px rgb(211 169 79 / 20%);
+}
 .profile-hero p {
   margin: 4px;
 }

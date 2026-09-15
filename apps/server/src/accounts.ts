@@ -5,6 +5,7 @@ import { rows, transaction, type Db } from './db.js';
 import { opaqueToken, tokenHash, verifyTelegram } from './auth.js';
 import { adjectives, nouns, avatars, levelFromXp, levelProgressFromXp } from './policy.js';
 import type { Config } from './config.js';
+import { equippedCosmetics } from './cosmetics.js';
 export interface Account {
   id: string;
   status: string;
@@ -129,5 +130,6 @@ export async function profile(pool: pg.Pool, id: string, config: Config): Promis
     admin: await isAdmin(pool, id, config),
     ratings,
     activeMatchId: active?.match_id ?? null,
+    cosmetics: await equippedCosmetics(pool, id),
   };
 }

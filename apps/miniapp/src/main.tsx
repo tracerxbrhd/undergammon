@@ -8,6 +8,7 @@ import { Tutorial } from './Tutorial';
 import { PublicProfile } from './PublicProfile';
 import { GlassSurface, ProgressBar, SegmentedControl, BottomSheet } from './ui';
 import { primaryNavigation, type Screen } from './app/navigation';
+import { resolveProfileFrame } from './game/cosmetics';
 import './styles/tokens.css';
 import './style.css';
 interface Challenge {
@@ -465,7 +466,11 @@ function App() {
             {screen === 'profile' && (
               <>
                 <div className="profile-hero">
-                  <span className="avatar profile-avatar">{avatarEmoji[me.avatar]}</span>
+                  <span
+                    className={`avatar profile-avatar ${resolveProfileFrame(me.cosmetics.profileFrame).className}`}
+                  >
+                    {avatarEmoji[me.avatar]}
+                  </span>
                   <h1>{me.nickname}</h1>
                   <p>
                     {t.level} {me.level} · {me.totalXp} XP · {me.coins} {t.coins}

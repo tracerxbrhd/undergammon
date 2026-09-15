@@ -11,6 +11,7 @@ import {
   rulesetSchema,
   type ServerEvent,
   type MatchSnapshot,
+  type PublicProfile,
 } from '@undergammon/protocol';
 import {
   authenticate,
@@ -25,6 +26,7 @@ import { rows, transaction } from './db.js';
 import { MatchService } from './matches.js';
 import { avatars, validateNickname, levelFromXp, levelProgressFromXp } from './policy.js';
 import type { Config } from './config.js';
+import { equippedCosmetics } from './cosmetics.js';
 const uuid = z.uuid();
 export async function buildServer(pool: pg.Pool, config: Config) {
   const app = Fastify({
@@ -182,7 +184,7 @@ export async function buildServer(pool: pg.Pool, config: Config) {
     await identity(req);
     const id = uuid.parse((req.params as { id: unknown }).id);
     const a = await account(pool, id);
-    const ratings = await rows(
+    const ratings = await rows<PublicProfile['ratings'][number]>(
       pool,
       'SELECT ruleset,rating,peak,played,wins FROM ratings WHERE account_id=$1 AND season_id=0',
       [id],
@@ -202,7 +204,8 @@ export async function buildServer(pool: pg.Pool, config: Config) {
       level: levelFromXp(a.total_xp),
       ratings,
       stats,
-    };
+      cosmetics: await equippedCosmetics(pool, id),
+    } satisfies PublicProfile;
   });
   app.get('/api/history', async (req) => {
     const id = await identity(req);
