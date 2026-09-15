@@ -224,13 +224,18 @@ test('player buys, equips, and removes a permanent profile frame', async ({ brow
   await expect(storeBalance).toHaveText('50 Coins');
 
   await navigation.getByRole('button', { name: /Cosmetics/ }).click();
-  await page.getByRole('button', { name: 'Equip' }).click();
-  await expect(page.getByRole('button', { name: 'Equipped' })).toBeDisabled();
+  const bronzeFrame = page.locator('.cosmetic-card', { hasText: 'Bronze Frame' });
+  await expect(bronzeFrame).toBeVisible();
+  await bronzeFrame.getByRole('button', { name: 'Equip', exact: true }).click();
+  await expect(
+    bronzeFrame.getByRole('button', { name: 'Equipped', exact: true }),
+  ).toBeDisabled();
   await navigation.getByRole('button', { name: /Profile/ }).click();
   await expect(page.locator('.profile-avatar')).toHaveClass(/profile-frame-bronze/);
 
   await navigation.getByRole('button', { name: /Cosmetics/ }).click();
-  await page.locator('.cosmetic-card', { hasText: 'Default' }).getByRole('button').click();
+  const defaultFrame = page.locator('.cosmetic-card', { hasText: 'Default' });
+  await defaultFrame.getByRole('button', { name: 'Equip', exact: true }).click();
   await navigation.getByRole('button', { name: /Profile/ }).click();
   await expect(page.locator('.profile-avatar')).not.toHaveClass(/profile-frame-bronze/);
   await page.screenshot({ path: 'test-results/cosmetics-profile-default.png', fullPage: true });
