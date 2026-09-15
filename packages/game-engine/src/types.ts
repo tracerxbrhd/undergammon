@@ -17,11 +17,7 @@ export type DiceRoll = readonly [DiceValue, DiceValue];
 export type RemainingDice = readonly DiceValue[];
 export type TurnNumber = number & { readonly __turnNumber: unique symbol };
 export type GamePhase =
-  | 'OPENING_ROLL'
-  | 'WAITING_FOR_ROLL'
-  | 'AWAITING_MOVE'
-  | 'TURN_TRANSITION'
-  | 'FINISHED';
+  'OPENING_ROLL' | 'WAITING_FOR_ROLL' | 'AWAITING_MOVE' | 'TURN_TRANSITION' | 'FINISHED';
 
 export interface BoardState {
   readonly A: readonly number[];
