@@ -106,6 +106,40 @@ Preliminary rating uses the existing approximate/preliminary presentation semant
 
 Do not invent matchmaking search-radius values or other tuning details that the server does not expose.
 
+## Matchmaking flow
+
+After the player starts Casual or Ranked matchmaking, the UI transitions to a focused matchmaking screen rather than leaving queue state embedded in Home.
+
+The matchmaking screen temporarily hides the normal bottom navigation and presents only information relevant to the active search.
+
+It should show:
+
+- selected ruleset;
+- Casual / Ranked mode;
+- relevant rating/calibration context for Ranked where useful;
+- restrained search/progress animation;
+- elapsed local search time as presentation context;
+- one clear Cancel search action.
+
+The player has already selected the match parameters on Home, so the matchmaking screen must not repeat configuration controls or introduce new matchmaking options.
+
+Do not display guessed search-radius values, hidden queue tuning, estimated opponent rating windows or other operational data that the backend does not explicitly expose.
+
+When an opponent is found, do not introduce a second `Opponent found -> Accept` confirmation step for normal matchmaking.
+
+The accepted transition is conceptually:
+
+```text
+Looking for opponent
+-> opponent/match found authoritatively
+-> short transition
+-> Game Screen / WAITING_FOR_PLAYERS as needed
+```
+
+The authoritative lifecycle decides when the match exists and becomes playable.
+
+Cancelling matchmaking should leave the queue authoritatively and return to Home while preserving the previously selected mode/ruleset/setup values.
+
 ## Active-match priority
 
 If the account has an unfinished active match, normal match setup becomes secondary to recovery.
@@ -122,6 +156,8 @@ Home uses the shared `AppShell` and bottom navigation from `25-miniapp-navigatio
 
 No empty placeholder tabs are shown for future Store/Social/etc destinations.
 
+Focused matchmaking flow hides the bottom navigation while the queue is active.
+
 ## Non-goals
 
 This Home redesign does not introduce:
@@ -133,6 +169,7 @@ This Home redesign does not introduce:
 - daily rewards panels;
 - news/feed content;
 - detailed match analytics;
-- speculative matchmaking controls unsupported by the backend.
+- speculative matchmaking controls unsupported by the backend;
+- an additional accept/ready step after normal matchmaking finds an opponent.
 
 Home remains focused on starting or returning to a game.
