@@ -9,6 +9,12 @@ import { buildServer } from '../src/app.js';
 import { signedInitData } from './helpers.js';
 import type { Command, MatchSnapshot } from '@undergammon/protocol';
 import { grantSeason0TesterFrame } from '../src/cosmetics.js';
+import {
+  claimDailyReward,
+  claimDailyRewardInTransaction,
+  dailyRewardStatus,
+} from '../src/daily-rewards.js';
+import { dailyRewardCoins } from '../src/policy.js';
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('PostgreSQL integration', () => {
   const pool = createPool(url ?? 'postgresql://unused');
@@ -290,6 +296,136 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
       transaction(pool, (db) => service.coins(db, user(0), -101, 'ADMIN_ADJUSTMENT', 'negative')),
     ).rejects.toThrow('INSUFFICIENT_COINS');
     await expect(pool.query('DELETE FROM coin_ledger')).rejects.toThrow('append-only');
+  });
+  it('claims the seven-day UTC reward cycle through the Coin ledger and wraps', async () => {
+    expect(dailyRewardCoins).toEqual([5, 5, 10, 10, 15, 20, 35]);
+    expect(dailyRewardCoins.reduce((total, coins) => total + coins, 0)).toBe(100);
+    const dates = [
+      '2026-01-01',
+      '2026-01-02',
+      '2026-01-06', // Missing days do not create claims or reset the cycle.
+      '2026-01-07',
+      '2026-01-08',
+      '2026-01-09',
+      '2026-01-10',
+      '2026-01-11',
+    ];
+    for (const [index, date] of dates.entries()) {
+      const result = await claimDailyReward(pool, user(0), () => new Date(`${date}T15:00:00Z`));
+      expect(result.rewardCoins).toBe(dailyRewardCoins[index % 7]);
+      expect(result.status.currentDay).toBe((index % 7) + 1);
+      expect(result.status.claimedToday).toBe(true);
+      expect(result.status.nextClaimAt).toBe(
+        new Date(new Date(`${date}T00:00:00Z`).getTime() + 86_400_000).toISOString(),
+      );
+    }
+    const claims = await rows<{ cycle_day: number; reward_coins: number }>(
+      pool,
+      'SELECT cycle_day,reward_coins FROM daily_reward_claims WHERE account_id=$1 ORDER BY claim_date',
+      [user(0)],
+    );
+    expect(claims).toHaveLength(8);
+    expect(claims.map(({ cycle_day }) => cycle_day)).toEqual([1, 2, 3, 4, 5, 6, 7, 1]);
+    expect(claims.map(({ reward_coins }) => reward_coins)).toEqual([5, 5, 10, 10, 15, 20, 35, 5]);
+    const ledger = await rows<{ source: string; reference: string }>(
+      pool,
+      "SELECT source,reference FROM coin_ledger WHERE account_id=$1 AND source='DAILY_REWARD'",
+      [user(0)],
+    );
+    expect(ledger).toHaveLength(8);
+    expect(new Set(ledger.map(({ reference }) => reference)).size).toBe(8);
+    expect(
+      (await rows<{ coins: number }>(pool, 'SELECT coins FROM accounts WHERE id=$1', [user(0)]))[0]
+        ?.coins,
+    ).toBe(105);
+  });
+  it('keeps repeated and concurrent daily claims idempotent', async () => {
+    const clock = () => new Date('2026-02-03T23:59:59Z');
+    const attempts = await Promise.allSettled([
+      claimDailyReward(pool, user(0), clock),
+      claimDailyReward(pool, user(0), clock),
+    ]);
+    expect(attempts.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    const rejected = attempts.find(({ status }) => status === 'rejected');
+    expect(rejected).toMatchObject({ reason: new Error('DAILY_REWARD_ALREADY_CLAIMED') });
+    await expect(claimDailyReward(pool, user(0), clock)).rejects.toThrow(
+      'DAILY_REWARD_ALREADY_CLAIMED',
+    );
+    expect(await rows(pool, 'SELECT * FROM daily_reward_claims')).toHaveLength(1);
+    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(
+      1,
+    );
+    expect(
+      (await rows<{ coins: number }>(pool, 'SELECT coins FROM accounts WHERE id=$1', [user(0)]))[0]
+        ?.coins,
+    ).toBe(5);
+  });
+  it('rolls claim, balance, and ledger back together on transaction failure', async () => {
+    await expect(
+      transaction(pool, async (db) => {
+        await claimDailyRewardInTransaction(db, user(0), () => new Date('2026-03-01T00:00:00Z'));
+        throw new Error('SIMULATED_DATABASE_FAILURE');
+      }),
+    ).rejects.toThrow('SIMULATED_DATABASE_FAILURE');
+    expect(await rows(pool, 'SELECT * FROM daily_reward_claims')).toHaveLength(0);
+    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(
+      0,
+    );
+    expect(
+      (await rows<{ coins: number }>(pool, 'SELECT coins FROM accounts WHERE id=$1', [user(0)]))[0]
+        ?.coins,
+    ).toBe(0);
+  });
+  it('reports read-only daily reward status and exposes claim results through authenticated APIs', async () => {
+    const initial = await dailyRewardStatus(pool, user(0), () => new Date('2026-04-01T12:00:00Z'));
+    expect(initial).toEqual({
+      rewards: [
+        { day: 1, coins: 5 },
+        { day: 2, coins: 5 },
+        { day: 3, coins: 10 },
+        { day: 4, coins: 10 },
+        { day: 5, coins: 15 },
+        { day: 6, coins: 20 },
+        { day: 7, coins: 35 },
+      ],
+      currentDay: 1,
+      claimedToday: false,
+      lastClaimDate: null,
+      nextClaimAt: null,
+    });
+    expect(await rows(pool, 'SELECT * FROM daily_reward_claims')).toHaveLength(0);
+    expect(await rows(pool, 'SELECT * FROM coin_ledger')).toHaveLength(0);
+
+    const { app } = await buildServer(pool, config);
+    await app.ready();
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth',
+      headers: { host: 'localhost:5173', origin: config.PUBLIC_ORIGIN },
+      payload: { initData: signedInitData(1, config.BOT_TOKEN) },
+    });
+    const cookie = login.cookies[0];
+    expect(cookie).toBeDefined();
+    const headers = { host: 'localhost:5173', cookie: `ug_session=${cookie?.value}` };
+    const status = await app.inject({ method: 'GET', url: '/api/daily-reward', headers });
+    expect(status.statusCode).toBe(200);
+    expect(status.json().rewards).toEqual(initial.rewards);
+    expect(await rows(pool, 'SELECT * FROM daily_reward_claims')).toHaveLength(0);
+    const claim = await app.inject({
+      method: 'POST',
+      url: '/api/daily-reward/claim',
+      headers: { ...headers, origin: config.PUBLIC_ORIGIN },
+    });
+    expect(claim.statusCode).toBe(200);
+    expect(claim.json()).toMatchObject({ rewardCoins: 5, balance: 5 });
+    const repeated = await app.inject({
+      method: 'POST',
+      url: '/api/daily-reward/claim',
+      headers: { ...headers, origin: config.PUBLIC_ORIGIN },
+    });
+    expect(repeated.statusCode).toBe(400);
+    expect(repeated.json()).toEqual({ code: 'DAILY_REWARD_ALREADY_CLAIMED' });
+    await app.close();
   });
   it('enforces authenticated admin and HTTP origin boundaries', async () => {
     const { app } = await buildServer(pool, config);

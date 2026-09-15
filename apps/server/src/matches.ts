@@ -17,6 +17,7 @@ import { opaqueToken } from './auth.js';
 import { matchXp, rankedCoins, ratingDelta, ratingWindow } from './policy.js';
 import type { Config } from './config.js';
 import { equippedCosmetics, grantSeason0TesterFrame } from './cosmetics.js';
+import { applyCoins } from './economy.js';
 interface Rating {
   rating: number;
   played: number;
@@ -302,24 +303,7 @@ export class MatchService {
     ]);
   }
   async coins(db: Db, id: string, delta: number, source: string, reference: string) {
-    const existing = await rows(
-      db,
-      'SELECT 1 FROM coin_ledger WHERE account_id=$1 AND source=$2 AND reference=$3',
-      [id, source, reference],
-    );
-    if (existing.length) return;
-    const a = (
-      await rows<{ coins: number }>(
-        db,
-        'UPDATE accounts SET coins=coins+$2 WHERE id=$1 AND coins+$2>=0 RETURNING coins',
-        [id, delta],
-      )
-    )[0];
-    if (!a) throw new Error('INSUFFICIENT_COINS');
-    await db.query(
-      'INSERT INTO coin_ledger(id,account_id,delta,balance_after,source,reference) VALUES($1,$2,$3,$4,$5,$6)',
-      [randomUUID(), id, delta, a.coins, source, reference],
-    );
+    await applyCoins(db, id, delta, source, reference);
   }
   async expire(db: Db, s: MatchSnapshot) {
     const now = Date.now();
