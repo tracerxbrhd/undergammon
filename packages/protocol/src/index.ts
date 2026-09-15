@@ -67,8 +67,27 @@ export interface Profile {
   muteOpponentReactions: boolean;
   totalXp: number;
   level: number;
+  levelProgress: LevelProgress;
   coins: number;
   admin: boolean;
   ratings: { ruleset: Ruleset; rating: number; played: number; peak: number }[];
   activeMatchId: string | null;
+}
+export interface LevelProgress {
+  levelStartTotalXp: number;
+  nextLevelTotalXp: number;
+  xpIntoLevel: number;
+  xpRequiredForNextLevel: number;
+}
+export interface MatchResultProgression {
+  xpGained: number;
+  totalXpBefore: number;
+  totalXpAfter: number;
+  levelBefore: number;
+  levelAfter: number;
+  progressBefore: LevelProgress;
+  progressAfter: LevelProgress;
+  ratingBefore: number | null;
+  ratingAfter: number | null;
+  ratingDelta: number | null;
 }

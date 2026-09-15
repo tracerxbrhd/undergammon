@@ -8,6 +8,13 @@
       "when": 1789401600000,
       "tag": "0000_season_zero",
       "breakpoints": false
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790000000000,
+      "tag": "0001_match_result_progression",
+      "breakpoints": false
     }
   ]
 }

@@ -5,6 +5,17 @@ export function ratingDelta(rating: number, opponent: number, played: number, wo
 export function levelFromXp(xp: number) {
   return Math.floor((1 + Math.sqrt(1 + (8 * xp) / 100)) / 2);
 }
+export function levelProgressFromXp(xp: number) {
+  const level = levelFromXp(xp);
+  const levelStartTotalXp = 50 * level * (level - 1);
+  const nextLevelTotalXp = 50 * level * (level + 1);
+  return {
+    levelStartTotalXp,
+    nextLevelTotalXp,
+    xpIntoLevel: xp - levelStartTotalXp,
+    xpRequiredForNextLevel: nextLevelTotalXp - levelStartTotalXp,
+  };
+}
 export function matchXp(mode: string, reason: string, won: boolean) {
   return reason === 'BEAR_OFF' ? Math.round((won ? 100 : 40) * (mode === 'PRIVATE' ? 0.5 : 1)) : 0;
 }

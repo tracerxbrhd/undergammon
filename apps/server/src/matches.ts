@@ -252,10 +252,19 @@ export class MatchService {
       for (const seat of ['A', 'B'] as const) {
         const id = s.players[seat].accountId;
         const won = seat === winner;
-        await db.query('UPDATE accounts SET total_xp=total_xp+$2 WHERE id=$1', [
-          id,
-          matchXp(s.mode, reason, won),
-        ]);
+        const xpGained = matchXp(s.mode, reason, won);
+        const xp = (
+          await rows<{ before: number; after: number }>(
+            db,
+            'UPDATE accounts SET total_xp=total_xp+$2 WHERE id=$1 RETURNING total_xp-$2 AS before,total_xp AS after',
+            [id, xpGained],
+          )
+        )[0];
+        if (!xp) throw new Error('ACCOUNT_NOT_FOUND');
+        await db.query(
+          'UPDATE match_players SET xp_before=$3,xp_after=$4,xp_gained=$5 WHERE match_id=$1 AND account_id=$2',
+          [s.id, id, xp.before, xp.after, xpGained],
+        );
         if (s.mode === 'RANKED') {
           const r = (
             await rows<Rating>(
