@@ -7,6 +7,13 @@ import { Game } from './Game';
 import { Tutorial } from './Tutorial';
 import { PublicProfile } from './PublicProfile';
 import { GlassSurface, ProgressBar, SegmentedControl, BottomSheet } from './ui';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  EmptyStateIcon,
+  RetryIcon,
+} from './ui/icons';
 import { primaryNavigation, type Screen } from './app/navigation';
 import { resolveProfileFrame } from './game/cosmetics';
 import { DailyReward } from './DailyReward';
@@ -14,6 +21,7 @@ import { Store } from './Store';
 import { Cosmetics } from './Cosmetics';
 import './styles/tokens.css';
 import './style.css';
+
 interface Challenge {
   token: string;
   ruleset: Ruleset;
@@ -21,6 +29,7 @@ interface Challenge {
   expires_at: string;
   match_id: string | null;
 }
+
 interface HistoryRow {
   opponent_id: string;
   id: string;
@@ -33,6 +42,7 @@ interface HistoryRow {
   rating_before: number | null;
   rating_after: number | null;
 }
+
 interface Rank {
   id: string;
   nickname: string;
@@ -41,7 +51,11 @@ interface Rank {
   peak: number;
   position: string;
 }
+
+type LoadState = 'idle' | 'loading' | 'ready' | 'error';
+
 const rulesets: readonly Ruleset[] = ['LONG_NARDY', 'BACKGAMMON'];
+
 function App() {
   const [publicId, setPublicId] = useState<string | null>(null),
     [me, setMe] = useState<Profile | null>(null);
@@ -60,27 +74,54 @@ function App() {
     [incoming, setIncoming] = useState(''),
     [error, setError] = useState('');
   const [history, setHistory] = useState<HistoryRow[]>([]),
-    [ranks, setRanks] = useState<{ top: Rank[]; self: Rank | null }>({ top: [], self: null });
+    [historyState, setHistoryState] = useState<LoadState>('idle');
+  const [ranks, setRanks] = useState<{ top: Rank[]; self: Rank | null }>({
+    top: [],
+    self: null,
+  });
+  const [rankState, setRankState] = useState<LoadState>('idle');
   const [nickname, setNickname] = useState(''),
     [edit, setEdit] = useState(false),
     [tutorial, setTutorial] = useState(false),
     [tick, setTick] = useState(Date.now());
   const t = copy[language];
+
   const run = (f: () => Promise<unknown>) =>
     void f().catch((e: unknown) => setError(e instanceof Error ? e.message : 'NETWORK_ERROR'));
+
   const refresh = async () => {
     const p = await api<Profile>('/me');
     setMe(p);
     setLanguage(p.language);
     return p;
   };
-  const loadRanks = (r: Ruleset) =>
-    run(async () => setRanks(await api('/leaderboard?ruleset=' + r)));
+
+  const loadRanks = (selectedRuleset: Ruleset) => {
+    setRankState('loading');
+    void api<{ top: Rank[]; self: Rank | null }>('/leaderboard?ruleset=' + selectedRuleset)
+      .then((value) => {
+        setRanks(value);
+        setRankState('ready');
+      })
+      .catch(() => setRankState('error'));
+  };
+
+  const loadHistory = () => {
+    setHistoryState('loading');
+    void api<HistoryRow[]>('/history')
+      .then((value) => {
+        setHistory(value);
+        setHistoryState('ready');
+      })
+      .catch(() => setHistoryState('error'));
+  };
+
   const nav = (next: Screen) => {
     setScreen(next);
-    if (next === 'history') run(async () => setHistory(await api('/history')));
+    if (next === 'history') loadHistory();
     if (next === 'leaders') loadRanks(ruleset);
   };
+
   const patch = (value: unknown) =>
     run(async () => {
       const p = await api<Profile>('/profile', 'PATCH', value);
@@ -88,6 +129,7 @@ function App() {
       setLanguage(p.language);
       setNickname(p.nickname);
     });
+
   useEffect(() => {
     platform.ready();
     return platform.subscribeLayout(({ stableViewportHeight, safeArea, contentSafeArea }) => {
@@ -96,8 +138,6 @@ function App() {
       for (const edge of ['top', 'right', 'bottom', 'left'] as const) {
         const environmentInset = `env(safe-area-inset-${edge}, 0px)`;
         root.setProperty(`--app-safe-${edge}`, `max(${safeArea[edge]}px, ${environmentInset})`);
-        // The platform adapter supplies the effective Telegram content top;
-        // other edges continue to fall back to the device safe inset.
         const contentInset = contentSafeArea[edge] || safeArea[edge];
         root.setProperty(
           `--app-content-safe-${edge}`,
@@ -106,6 +146,7 @@ function App() {
       }
     });
   }, []);
+
   useEffect(() => {
     run(async () => {
       const c = await api<{ botUsername: string }>('/config');
@@ -121,9 +162,11 @@ function App() {
       }
     });
   }, []);
+
   useEffect(() => {
     localStorage.setItem('ruleset', ruleset);
   }, [ruleset]);
+
   useEffect(() => {
     if (!me || match) return;
     const poll = () =>
@@ -146,10 +189,12 @@ function App() {
     const id = setInterval(poll, 5000);
     return () => clearInterval(id);
   }, [me?.id, queue, match]);
+
   useEffect(() => {
     const id = setInterval(() => setTick(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
   const invite = async () => {
     const c = await api<{ token: string; expiresAt: number }>('/challenges', 'POST', { ruleset });
     setChallenge({
@@ -160,6 +205,7 @@ function App() {
       match_id: null,
     });
   };
+
   if (!platform.initData())
     return (
       <main className="landing">
@@ -183,6 +229,7 @@ function App() {
         </button>
       </main>
     );
+
   if (!me)
     return (
       <main className="bootstrap">
@@ -193,6 +240,7 @@ function App() {
         <p>{t.reconnecting}</p>
       </main>
     );
+
   if (match)
     return (
       <Game
@@ -219,8 +267,10 @@ function App() {
         }
       />
     );
+
   const focused = queue || Boolean(challenge);
   const rating = me.ratings.find((r) => r.ruleset === ruleset);
+
   return (
     <main className={`app-shell ${focused ? 'focused' : ''}`}>
       {!focused && (
@@ -235,17 +285,20 @@ function App() {
           <span className="beta">S0</span>
         </header>
       )}
+
       {error && (
         <div className="connection-banner" role="alert">
-          {message(language, error)}
+          <span>{message(language, error)}</span>
           <button onClick={() => setError('')} aria-label={t.close}>
-            ×
+            <CloseIcon />
           </button>
         </div>
       )}
+
       {publicId && (
         <PublicProfile id={publicId} language={language} onClose={() => setPublicId(null)} />
       )}
+
       {incoming && (
         <BottomSheet label={t.waiting} onClose={() => setIncoming('')}>
           <h2>{language === 'ru' ? 'Вас пригласили в матч' : 'Match invitation'}</h2>
@@ -269,6 +322,7 @@ function App() {
           <button onClick={() => setIncoming('')}>{t.cancel}</button>
         </BottomSheet>
       )}
+
       {queue ? (
         <Focused
           title={t.searching}
@@ -311,6 +365,7 @@ function App() {
                 }
               />
             )}
+
             {screen === 'cosmetics' && (
               <Cosmetics
                 language={language}
@@ -319,6 +374,7 @@ function App() {
                 }
               />
             )}
+
             {screen === 'home' && (
               <>
                 <div className="identity">
@@ -339,6 +395,7 @@ function App() {
                     }}
                   />
                 </div>
+
                 <GlassSurface className="setup-card">
                   <SegmentedControl
                     label="Mode"
@@ -437,61 +494,89 @@ function App() {
                 </GlassSurface>
               </>
             )}
+
             {screen === 'leaders' && (
               <>
                 <PageTitle title={t.leaders} />
                 <SegmentedControl
                   label="Ruleset"
                   value={ruleset}
-                  onChange={(r) => {
-                    setRuleset(r);
-                    loadRanks(r);
+                  onChange={(selectedRuleset) => {
+                    setRuleset(selectedRuleset);
+                    loadRanks(selectedRuleset);
                   }}
                   options={rulesets.map((value) => ({
                     value,
                     label: value === 'LONG_NARDY' ? t.long : t.short,
                   }))}
                 />
-                <div className="leader-list">
-                  {ranks.top.map((r, i) => (
-                    <button
-                      className={`leader-row ${i < 3 ? 'top-rank' : ''}`}
-                      key={r.id}
-                      onClick={() => setPublicId(r.id)}
-                    >
-                      <span className="rank-no">{r.position}</span>
-                      <span className="avatar">{avatarEmoji[r.avatar]}</span>
-                      <span className="row-main">
-                        {r.nickname}
-                        <small>
-                          {language === 'ru' ? 'Пик' : 'Peak'} {r.peak}
-                        </small>
-                      </span>
-                      <strong>{r.rating}</strong>
-                    </button>
-                  ))}
-                </div>
-                <GlassSurface className="self-card">
-                  {ranks.self ? (
-                    <>
-                      <span>
-                        {language === 'ru' ? 'Ваша позиция' : 'Your position'} · #
-                        {ranks.self.position}
-                      </span>
-                      <strong>{ranks.self.rating}</strong>
-                    </>
-                  ) : (
-                    <>
-                      <span>
-                        {language === 'ru' ? 'Калибровка' : 'Calibration'}{' '}
-                        {Math.min(10, rating?.played ?? 0)}/10
-                      </span>
-                      <strong>≈ {rating?.rating ?? 1000}</strong>
-                    </>
-                  )}
-                </GlassSurface>
+
+                {rankState === 'loading' || rankState === 'idle' ? (
+                  <LeaderboardSkeleton />
+                ) : rankState === 'error' ? (
+                  <InlineState
+                    title={language === 'ru' ? 'Рейтинг недоступен' : 'Rankings unavailable'}
+                    text={
+                      language === 'ru'
+                        ? 'Не удалось загрузить таблицу лидеров.'
+                        : 'The leaderboard could not be loaded.'
+                    }
+                    action={language === 'ru' ? 'Повторить' : 'Retry'}
+                    onAction={() => loadRanks(ruleset)}
+                    retry
+                  />
+                ) : (
+                  <>
+                    {ranks.top.length ? (
+                      <div className="leader-list">
+                        {ranks.top.map((rank, index) => (
+                          <button
+                            className={`leader-row ${index < 3 ? 'top-rank' : ''}`}
+                            key={rank.id}
+                            onClick={() => setPublicId(rank.id)}
+                          >
+                            <span className="rank-no">{rank.position}</span>
+                            <span className="avatar">{avatarEmoji[rank.avatar]}</span>
+                            <span className="row-main">{rank.nickname}</span>
+                            <strong>{rank.rating}</strong>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <InlineState
+                        title={language === 'ru' ? 'Пока нет игроков' : 'No ranked players yet'}
+                        text={
+                          language === 'ru'
+                            ? 'Таблица появится после завершённых рейтинговых матчей.'
+                            : 'The leaderboard will populate after ranked matches are completed.'
+                        }
+                      />
+                    )}
+
+                    <GlassSurface className="self-card">
+                      {ranks.self ? (
+                        <>
+                          <span>
+                            {language === 'ru' ? 'Ваша позиция' : 'Your position'} · #
+                            {ranks.self.position}
+                          </span>
+                          <strong>{ranks.self.rating}</strong>
+                        </>
+                      ) : (
+                        <>
+                          <span>
+                            {language === 'ru' ? 'Калибровка' : 'Calibration'}{' '}
+                            {Math.min(10, rating?.played ?? 0)}/10
+                          </span>
+                          <strong>≈ {rating?.rating ?? 1000}</strong>
+                        </>
+                      )}
+                    </GlassSurface>
+                  </>
+                )}
               </>
             )}
+
             {screen === 'profile' && (
               <>
                 <div className="profile-hero">
@@ -582,14 +667,34 @@ function App() {
                 )}
               </>
             )}
+
             {screen === 'history' && (
               <>
                 <Back title={t.history} onBack={() => nav('profile')} />
-                {history.length === 0 ? (
-                  <Empty
+                {historyState === 'loading' || historyState === 'idle' ? (
+                  <HistorySkeleton />
+                ) : historyState === 'error' ? (
+                  <InlineState
+                    title={language === 'ru' ? 'История недоступна' : 'History unavailable'}
                     text={
-                      language === 'ru' ? 'Завершённых матчей пока нет' : 'No completed matches yet'
+                      language === 'ru'
+                        ? 'Не удалось загрузить историю матчей.'
+                        : 'Your match history could not be loaded.'
                     }
+                    action={language === 'ru' ? 'Повторить' : 'Retry'}
+                    onAction={loadHistory}
+                    retry
+                  />
+                ) : history.length === 0 ? (
+                  <Empty
+                    text={language === 'ru' ? 'Завершённых матчей пока нет' : 'No completed matches yet'}
+                    detail={
+                      language === 'ru'
+                        ? 'Завершённые игры появятся здесь.'
+                        : 'Your completed games will appear here.'
+                    }
+                    action={language === 'ru' ? 'Играть' : 'Play a match'}
+                    onAction={() => nav('home')}
                   />
                 ) : (
                   history.map((h) => (
@@ -632,6 +737,7 @@ function App() {
                 )}
               </>
             )}
+
             {screen === 'rules' && (
               <>
                 <Back
@@ -673,6 +779,7 @@ function App() {
                 </GlassSurface>
               </>
             )}
+
             {screen === 'settings' && (
               <Settings
                 me={me}
@@ -685,6 +792,7 @@ function App() {
                 }}
               />
             )}
+
             {screen === 'technical' && (
               <>
                 <Back
@@ -698,6 +806,7 @@ function App() {
                 </GlassSurface>
               </>
             )}
+
             {screen === 'admin' && me.admin && (
               <>
                 <Back title="Admin" onBack={() => nav('profile')} />
@@ -705,6 +814,7 @@ function App() {
               </>
             )}
           </div>
+
           <nav className="bottom-nav glass glass-strong" aria-label="Primary">
             {primaryNavigation.map((item) => (
               <button
@@ -722,6 +832,7 @@ function App() {
     </main>
   );
 }
+
 function PageTitle({ title }: { title: string }) {
   return (
     <div className="page-title">
@@ -730,32 +841,106 @@ function PageTitle({ title }: { title: string }) {
     </div>
   );
 }
+
 function Back({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div className="secondary-head">
       <button onClick={onBack} aria-label="Back">
-        ‹
+        <ChevronLeftIcon />
       </button>
       <h1>{title}</h1>
     </div>
   );
 }
+
 function Menu({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button onClick={onClick}>
       <span>{label}</span>
-      <b>›</b>
+      <b aria-hidden="true">
+        <ChevronRightIcon />
+      </b>
     </button>
   );
 }
-function Empty({ text }: { text: string }) {
+
+function Empty({
+  text,
+  detail,
+  action,
+  onAction,
+}: {
+  text: string;
+  detail?: string;
+  action?: string;
+  onAction?: () => void;
+}) {
   return (
-    <GlassSurface className="empty">
-      <span>◇</span>
-      <p>{text}</p>
+    <GlassSurface className="empty polished-empty">
+      <EmptyStateIcon />
+      <h3>{text}</h3>
+      {detail && <p>{detail}</p>}
+      {action && onAction && (
+        <button className="primary" onClick={onAction}>
+          {action}
+        </button>
+      )}
     </GlassSurface>
   );
 }
+
+function InlineState({
+  title,
+  text,
+  action,
+  onAction,
+  retry = false,
+}: {
+  title: string;
+  text: string;
+  action?: string;
+  onAction?: () => void;
+  retry?: boolean;
+}) {
+  return (
+    <div className="commerce-state-card">
+      {retry ? <RetryIcon /> : <EmptyStateIcon />}
+      <h3>{title}</h3>
+      <p>{text}</p>
+      {action && onAction && <button onClick={onAction}>{action}</button>}
+    </div>
+  );
+}
+
+function LeaderboardSkeleton() {
+  return (
+    <div className="leader-list leader-skeleton" aria-hidden="true">
+      {[0, 1, 2, 3, 4].map((index) => (
+        <div className="leader-skeleton-row" key={index}>
+          <i />
+          <span />
+          <b />
+          <strong />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HistorySkeleton() {
+  return (
+    <div className="history-skeleton" aria-hidden="true">
+      {[0, 1, 2].map((index) => (
+        <div className="history-skeleton-row" key={index}>
+          <span />
+          <strong />
+          <i />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Focused({
   title,
   subtitle,
@@ -804,6 +989,7 @@ function Focused({
     </section>
   );
 }
+
 function Settings({
   me,
   language,
@@ -868,6 +1054,7 @@ function Settings({
     </>
   );
 }
+
 function Admin() {
   const [query, setQuery] = useState(''),
     [target, setTarget] = useState(''),
@@ -938,4 +1125,5 @@ function Admin() {
     </GlassSurface>
   );
 }
+
 createRoot(document.getElementById('root')!).render(<App />);
