@@ -35,7 +35,8 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
     await telegram(b, seed + 1);
     const pa = await a.newPage(),
       pb = await b.newPage();
-    const primaryFind = (page: typeof pa) => page.locator('button.primary', { hasText: 'Find a player' });
+    const primaryFind = (page: typeof pa) =>
+      page.locator('button.primary', { hasText: 'Find a player' });
     await Promise.all([pa.goto('/'), pb.goto('/')]);
     await expect(primaryFind(pa)).toBeVisible();
     const rulesetName = ruleset === 'LONG_NARDY' ? 'Long Nardy' : 'Backgammon';
