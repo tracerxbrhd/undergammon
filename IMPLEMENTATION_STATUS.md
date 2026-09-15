@@ -1,153 +1,96 @@
 # Season 0 implementation status
 
-Verified locally on 2026-09-14. This repository now contains an integrated playable
-beta candidate, not just scaffolding. Production has **not** been deployed or
-validated against a real Telegram bot. No real credentials were created or committed.
+Snapshot: 2026-09-15. UNDERGAMMON is a deployed Telegram-first Season 0 Open Beta, not an undeployed prototype or local-only beta candidate. Production runs at `https://undergammon.tracerxbrhd.ru` with Telegram entry through `@UndergammonBot`.
 
-## Implemented and integrated
+## Implemented and production-verified
 
-- Strict TypeScript/pnpm workspaces, React/Vite/Tailwind Mini App, Fastify/plain
-  WebSocket server, thin grammY webhook bot, PostgreSQL, Drizzle versioned migrations.
-- Pure deterministic Long Nardy and Classic Backgammon engine: full-turn legal
-  generation/validation, mandatory dice use, doubles, opening, bearing off, head
-  restrictions/blockades, hits/bar, result classification and serialization.
-  Appropriate algorithms and regression tests were selectively ported from the
-  frozen legacy repository; its infrastructure was not imported.
-- Raw Telegram initData signature/freshness validation, internal account UUIDs,
-  hashed opaque sessions, production secure cookies, origin/host checks, runtime
-  contracts, HTTP/WebSocket limits and server-side admin authorization.
-- Persistent casual/ranked queues, private challenges with expiry and first-valid
-  acceptance, self-accept protection, one unfinished match per account, private/
-  casual rematches. No direct ranked rematch.
-- Cryptographically random server dice, full-turn validation, persisted versions,
-  command idempotency, controlling-connection takeover, reconnect snapshots,
-  initial-join/turn/disconnect deadlines, surrender, completion and recovery.
-- Transactional result/rating/XP/Coin finalization; NO_CONTEST has no progression
-  effects. Immutable audit/event/Coin ledger records and database constraints.
-- Separate per-ruleset Season 0 Elo ratings, 10-game initial calibration,
-  leaderboards, permanent XP/level, ranked win and streak Coins. Formula/reward
-  constants are isolated and documented in README.
-- Pseudonymous profiles, curated sample avatars/nickname words, nickname cooldown
-  and basic moderation, public profile aggregates, private paginated history,
-  settings, 30-day deletion/restoration and scheduled identity anonymization.
-- Admin account lookup/details, suspension/ban/unban, nickname reset, Coin/rating
-  adjustments with reasons and audit. Emergency unfinished-match NO_CONTEST API.
-- Touch-first portrait board, legal highlights, local draft/undo/confirm, move
-  playback, dice/timer HUD, surrender, reactions, reconnect/takeover, results,
-  profile/history/leaderboards/rules/settings and hidden admin entry.
-- RU/EN player copy and rules, small interactive bearing-off tutorial, optional
-  haptic/sound feedback, clean unauthenticated browser landing and Telegram CTA.
-- Bot /start launch, challenge/recovery Mini App links, durable notification
-  delivery with bounded retry and suppression while an account is present.
-- Production Docker Compose/Caddy, isolated local/test overrides, persistent DB
-  without a public production port, health routes, CI and manual production workflow.
-  Proprietary LICENSE, contribution and security policies.
+The following capabilities are implemented on `main` and have also been exercised with real Telegram accounts in production:
 
-## Partial or not yet verified
+- Telegram `initData` authentication and Game Account creation;
+- Telegram Mini App launch through the production bot;
+- Long Nardy and Classic Backgammon PvP;
+- server-authoritative dice, move validation, match state and results;
+- casual matchmaking and private challenge/invite flows;
+- realtime gameplay and reconnect/recovery;
+- persistent profiles, per-ruleset Season 0 ratings, leaderboards, XP/level and match history;
+- ranked Coin rewards backed by the append-only Coin ledger;
+- 7-day progressive Daily Reward with explicit claim and authoritative Coin crediting;
+- permanent cosmetic ownership and equipment with backend ownership/slot validation;
+- Season 0 Tester Profile Frame;
+- Store purchase flow with Bronze Profile Frame purchasable for Coins;
+- purchase without auto-equip, plus `Store -> purchase -> Cosmetics -> equip -> Profile -> Default` flow;
+- Profile/public-profile and match identity presentation of equipped Profile Frames;
+- five primary Mini App destinations: `Store | Cosmetics | Play | Rankings | Profile`, with Play central;
+- Docker Compose production deployment on the VPS with Caddy/HTTPS and PostgreSQL persistence.
 
-- Real Telegram Android/iOS/webview interaction, actual webhook delivery and
-  challenge/recovery notifications require owner credentials and device acceptance.
-  Automated browser tests use signed synthetic Telegram data against real auth;
-  there is no production authentication bypass.
-- RU/EN localization covers the main player journey; some admin labels and uncommon
-  internal error values still need editorial localization. Tutorial is deliberately
-  short and not a complete guided course.
-- Seasonal storage supports later seasons, but rollover/soft-reset operations,
-  five-game returning-season calibration, historical-season UI and a permanent
-  Season 0 cosmetic marker are not implemented.
-- Matchmaking does not preferentially avoid recent opponents. Critical system
-  notification operations lack a dedicated admin composing surface. NO_CONTEST is
-  available through the admin API rather than an admin screen.
-- Single backend process is required. The transaction advisory lock deliberately
-  serializes mutations; capacity/load testing and multi-instance socket routing
-  are not provided. No production traffic/load claims are made.
-- New profile/tutorial/admin flows have type and build verification, but not the
-  same end-to-end browser coverage as matchmaking/gameplay/reconnect.
-- Identity/profile snapshots are anonymized after retention; immutable private
-  audit/event records are retained for integrity. Review the retention policy
-  before public launch if different legal retention requirements apply.
+Update 1 is implemented and deployed. Its functional chain is:
 
-## Intentionally deferred P1
+`Season 0 identity -> Daily Reward / ranked Coins -> Store -> ownership -> equipment -> cosmetic presentation`
 
-AI opponents/difficulty, daily rewards, cosmetic inventory/shop, large catalogs
-and richer effects are omitted. No paid currency, Telegram Stars, leagues or
-doubling cube. Automated off-site backups remain outside this pass's scope.
+## Implemented but requiring more tester feedback
 
-## Verification results
+The core production path works, but broader feedback is still useful for:
 
-- Frozen-lockfile install: passed using Node 24.19 and pnpm 12.4.1.
-- ESLint, Prettier check, strict workspace typechecks: passed.
-- Vitest: **46 tests passed across 9 files**, including real PostgreSQL integration
-  tests and complete server-controlled games under both rulesets.
-- Playwright Chromium: **3 tests passed**: mobile browser landing and two-player
-  matchmaking/move submission/reconnect/surrender for each ruleset.
-- Production workspace builds and all three Docker image builds: passed.
-- Production Compose configuration and Caddy configuration validation: passed.
-- Local Docker smoke stack: DB/server/bot started healthy, web started; landing,
-  `/api/config` and `/health` returned HTTP 200 through Caddy.
-- Code review/search found no TypeScript `any` escape hatches or `@ts-ignore`.
-- Benign tooling notices remain: npm does not understand pnpm's
-  strict-peer-dependencies setting; Fastify warns about its future removal of the
-  current request-logging option. They do not fail the checks.
+- Android/iOS Telegram WebView and compact-viewport coverage beyond the devices already used for acceptance;
+- Store/Cosmetics interaction polish and visual feedback;
+- Profile Frame presentation across the full set of profile/match surfaces and unusual viewport sizes;
+- less frequently exercised admin, account-lifecycle and notification/recovery paths;
+- localization/editorial polish outside the main RU/EN player journey.
 
-Tests and exact local commands are documented in README. Database integration
-tests truncate their test database: never point TEST_DATABASE_URL at real data.
+These are not claims that the underlying features are absent; they are areas where wider real-device/player coverage is still valuable.
 
-## Owner configuration
+## Partial / known technical debt
 
-Populate `.env` from `.env.example`:
+- Cosmetics are intentionally narrow at the current application/protocol/UI boundary: `PROFILE_FRAME` is the functional slot. Board Themes, Checker Sets, Dice Skins and richer cosmetic categories are not implemented content yet.
+- `resolveMatchCosmetics` / `ResolvedMatchCosmetics` and BoardScene owner-aware hooks exist, but Board Theme, Checker Set and Dice Skin resolution currently falls back to `Default`; Profile Frame is the implemented trusted cosmetic presentation.
+- Primary navigation is correctly five-tab and configuration-driven, but the current glyphs are Unicode presentation shortcuts rather than the intended production icon set.
+- The backend is a single process and live socket routing is process-local. Do not run multiple server replicas with the current realtime architecture.
+- The transaction advisory-lock strategy deliberately prioritizes correctness over throughput; broad load/capacity testing has not been performed.
+- Some secondary/admin strings and uncommon internal errors still need editorial localization polish.
+- Automated off-site PostgreSQL backup is not configured; the documented operational baseline is manual `pg_dump` plus copying backups off the VPS.
 
-| Variable                | Required value                                                           |
-| ----------------------- | ------------------------------------------------------------------------ |
-| POSTGRES_PASSWORD       | Independent random URL-safe password                                     |
-| BOT_TOKEN               | Real BotFather token                                                     |
-| BOT_USERNAME            | Actual bot username without @                                            |
-| TELEGRAM_WEBHOOK_SECRET | Independent random URL-safe 32–256 character secret                      |
-| ADMIN_TELEGRAM_IDS      | Comma-separated numeric admin Telegram identities; empty disables admins |
+## Intentionally deferred
 
-Defaults: TURN_SECONDS=60, TELEGRAM_AUTH_MAX_AGE_SECONDS=300, SESSION_HOURS=24.
-Production Compose supplies DATABASE_URL, PUBLIC_ORIGIN and NODE_ENV. Native local
-execution needs their `.env.example` values adapted to its local database/origin.
+The following are accepted deferrals rather than current defects:
 
-## Production deployment
+- AI opponent mode;
+- Telegram Stars / real-money currency or monetization;
+- battle pass and large achievement systems;
+- rotating/FOMO Store mechanics and personalized offers;
+- leagues/tournaments;
+- doubling cube;
+- recent-opponent avoidance in matchmaking;
+- Redis, queues and microservices;
+- multi-instance realtime routing;
+- automated off-site backup work;
+- native App Store / Google Play standalone clients;
+- broad Board Theme / Checker Set / Dice Skin catalog expansion beyond the current Profile Frame vertical slice.
 
-Run on the VPS after these changes have been published to the repository:
+## Deployment / operational notes
 
-```sh
-git clone https://github.com/tracerxbrhd/undergammon.git
-cd undergammon
-cp .env.example .env
-chmod 600 .env
-# Edit .env with the owner values listed above.
-docker compose build
-docker compose up -d db
-docker compose run --rm server node dist/migrate.js
-docker compose up -d --wait
-curl --fail https://undergammon.tracerxbrhd.ru/health
-```
+Production is live on one VPS using Docker Compose, Caddy and PostgreSQL. PostgreSQL is kept on the internal Docker network and production data lives in a persistent volume.
 
-Point domain A/appropriate AAAA records to the VPS, allow ports 80/443, configure
-BotFather Main Mini App and menu URL as `https://undergammon.tracerxbrhd.ru`, and
-start the bot with the tester accounts. Register the webhook once HTTPS is ready:
+Production deployment remains deliberately manual. `.github/workflows/deploy.yml` is triggered with `workflow_dispatch`, runs the verification workflow first, deploys the selected commit to the VPS, runs migrations, updates services and checks `https://undergammon.tracerxbrhd.ru/health`. Merging to `main` does **not** automatically deploy production.
 
-```sh
-set -a
-. ./.env
-set +a
-curl --fail --silent --show-error --request POST \
-  "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
-  --data-urlencode 'url=https://undergammon.tracerxbrhd.ru/telegram/webhook' \
-  --data-urlencode "secret_token=${TELEGRAM_WEBHOOK_SECRET}"
-```
+The current operational model has no staging environment, Redis, queue infrastructure, microservices or multiple realtime server replicas. Manual backup/restore commands are documented in `README.md`; automated off-site backups remain deferred.
 
-Manual GitHub deployment needs production environment secrets VPS_HOST, VPS_USER,
-VPS_SSH_KEY, VPS_KNOWN_HOSTS and variable DEPLOY_PATH. No automatic main-branch
-deployment is configured. README includes update and manual backup/restore commands.
+## Verification baseline
 
-## Release gates
+Update 1 final verification for PR #11 passed the repository's production verification baseline:
 
-No known failing local build/test or core gameplay blocker remains. Public release
-still requires real bot/DNS/TLS setup and a real-device two-account acceptance pass,
-including challenge deep links, disconnect/reconnect and bot fallback delivery.
-The partial P0 items above mean this is not a claim of complete specification
-coverage. Review and publish the working-tree changes before deploying from GitHub.
+- build;
+- ESLint;
+- Prettier format check;
+- strict workspace typecheck;
+- **78 unit/integration tests**;
+- Playwright E2E, including the Store -> purchase -> equip -> Profile -> Default flow;
+- production dependency audit;
+- Docker Compose configuration validation.
+
+The repository CI definition runs the same core build/lint/format/typecheck/test/E2E/audit/Compose checks against an isolated PostgreSQL service. Tests and exact local commands are documented in `README.md`. Integration tests truncate their test database: never point `TEST_DATABASE_URL` at production data.
+
+## Current release position
+
+There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store, permanent Season 0 cosmetic ownership or the Update 1 cosmetic flow as future release blockers: those capabilities exist and have been exercised in production.
+
+Season 0 remains an Open Beta. Production verification does not imply broad scale/load validation or completion of every deferred product specification.
