@@ -130,9 +130,7 @@ export function Store({
                   {product.priceCoins} {language === 'ru' ? 'Монет' : 'Coins'}
                 </small>
                 <p>
-                  {language === 'ru'
-                    ? 'Постоянная рамка профиля.'
-                    : 'Permanent profile frame.'}
+                  {language === 'ru' ? 'Постоянная рамка профиля.' : 'Permanent profile frame.'}
                 </p>
               </div>
               {product.owned ? (

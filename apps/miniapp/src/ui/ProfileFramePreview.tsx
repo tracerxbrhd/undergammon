@@ -17,9 +17,7 @@ export function ProfileFramePreview({
       className={`profile-frame-preview profile-frame-preview-${variant} ${resolveProfileFrame(cosmeticId).className}`}
       aria-hidden="true"
     >
-      <span className="profile-frame-preview-avatar">
-        {children ?? <ProfileIcon />}
-      </span>
+      <span className="profile-frame-preview-avatar">{children ?? <ProfileIcon />}</span>
     </span>
   );
 }

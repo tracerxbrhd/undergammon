@@ -107,9 +107,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 28%, #ffffff12, transparent 42%),
-    var(--surface-base);
+  background: radial-gradient(circle at 35% 28%, #ffffff12, transparent 42%), var(--surface-base);
   color: var(--text-secondary);
   font-size: 34px;
 }

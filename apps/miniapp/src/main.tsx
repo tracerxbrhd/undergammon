@@ -687,7 +687,9 @@ function App() {
                   />
                 ) : history.length === 0 ? (
                   <Empty
-                    text={language === 'ru' ? 'Завершённых матчей пока нет' : 'No completed matches yet'}
+                    text={
+                      language === 'ru' ? 'Завершённых матчей пока нет' : 'No completed matches yet'
+                    }
                     detail={
                       language === 'ru'
                         ? 'Завершённые игры появятся здесь.'

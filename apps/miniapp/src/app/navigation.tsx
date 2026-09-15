@@ -1,11 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  CosmeticsIcon,
-  PlayIcon,
-  ProfileIcon,
-  RankingsIcon,
-  StoreIcon,
-} from '../ui/icons';
+import { CosmeticsIcon, PlayIcon, ProfileIcon, RankingsIcon, StoreIcon } from '../ui/icons';
 import '../styles/polish.css';
 
 export type PrimaryScreen = 'store' | 'cosmetics' | 'home' | 'leaders' | 'profile';
