@@ -591,7 +591,11 @@ function App() {
               <>
                 <Back
                   title={language === 'ru' ? 'Обучение и правила' : 'Learn & Rules'}
-                  onBack={() => nav('profile')}
+                  onBack={() => {
+                    const destination = tutorial ? 'home' : 'profile';
+                    setTutorial(false);
+                    nav(destination);
+                  }}
                 />
                 <SegmentedControl
                   label="Ruleset"
