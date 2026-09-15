@@ -177,7 +177,7 @@ test('daily reward revalidates stale claims and countdown expiry with the server
 });
 test('player buys, equips, and removes a permanent profile frame', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await telegram(context, 1);
+  await telegram(context, 900000001);
   const page = await context.newPage();
   await page.goto('/');
   await expect(page.locator('button.primary', { hasText: 'Find a player' })).toBeVisible();
