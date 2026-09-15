@@ -119,9 +119,9 @@ export function Cosmetics({
                   <p>{description(id, language)}</p>
                 </div>
                 {equipped ? (
-                  <span className="cosmetic-state equipped">
+                  <button className="cosmetic-state equipped" disabled>
                     {language === 'ru' ? 'Выбрано' : 'Equipped'}
-                  </span>
+                  </button>
                 ) : (
                   <button disabled={pending !== null} onClick={() => void equip(id)}>
                     {pending === id
