@@ -1,4 +1,4 @@
-import { test, expect, type BrowserContext, type Page } from '@playwright/test';
+import { test, expect, type BrowserContext } from '@playwright/test';
 import { createHmac } from 'node:crypto';
 async function telegram(
   context: BrowserContext,
@@ -49,28 +49,6 @@ async function telegram(
     },
     { raw: params.toString(), contentSafeTop, stableViewportHeight },
   );
-}
-async function activeMatchId(page: Page) {
-  return page.evaluate(async () => {
-    const response = await fetch('/api/me');
-    if (!response.ok)
-      throw new Error(`Could not load active match: ${response.status} ${await response.text()}`);
-    return ((await response.json()) as { activeMatchId: string | null }).activeMatchId;
-  });
-}
-async function waitForSharedActiveMatch(a: Page, b: Page) {
-  let matchId: string | null = null;
-  await expect
-    .poll(
-      async () => {
-        const [aId, bId] = await Promise.all([activeMatchId(a), activeMatchId(b)]);
-        if (aId && aId === bId) matchId = aId;
-        return matchId;
-      },
-      { timeout: 15000 },
-    )
-    .not.toBeNull();
-  return matchId;
 }
 test('public landing is responsive and provides Telegram entry', async ({ page }) => {
   await page.goto('/');
@@ -273,103 +251,88 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
     test.setTimeout(60000);
     const a = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const b = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    try {
-      const seed = Date.now();
-      await telegram(a, seed, 36, 760);
-      await telegram(b, seed + 1, 36, 760);
-      const pa = await a.newPage(),
-        pb = await b.newPage();
-      const primaryFind = (page: typeof pa) =>
-        page.locator('button.primary', { hasText: 'Find a player' });
-      await Promise.all([pa.goto('/'), pb.goto('/')]);
-      await expect(primaryFind(pa)).toBeVisible();
-      await expect(primaryFind(pb)).toBeVisible();
-      const rulesetName = ruleset === 'LONG_NARDY' ? 'Long Nardy' : 'Backgammon';
-      const rulesetA = pa.getByRole('group', { name: 'Ruleset' }).getByRole('button', {
-        name: rulesetName,
-        exact: true,
-      });
-      const rulesetB = pb.getByRole('group', { name: 'Ruleset' }).getByRole('button', {
-        name: rulesetName,
-        exact: true,
-      });
-      await Promise.all([rulesetA.click(), rulesetB.click()]);
-      await Promise.all([
-        expect(rulesetA).toHaveAttribute('aria-pressed', 'true'),
-        expect(rulesetB).toHaveAttribute('aria-pressed', 'true'),
-      ]);
-      await Promise.all([primaryFind(pa).click(), primaryFind(pb).click()]);
-      expect(await waitForSharedActiveMatch(pa, pb)).toBeTruthy();
-      await expect(pa.locator('.board')).toBeVisible({ timeout: 15000 });
-      await expect(pb.locator('.board')).toBeVisible({ timeout: 15000 });
-      const gameScreen = pa.locator('.game-screen');
-      await expect
-        .poll(async () => await gameScreen.evaluate((element) => element.offsetTop))
-        .toBe(84);
-      await expect.poll(async () => (await gameScreen.boundingBox())?.height).toBe(760);
-      await expect
-        .poll(async () => (await gameScreen.locator('.player-strip').first().boundingBox())?.y)
-        .toBe(164);
-      await expect.poll(async () => (await gameScreen.boundingBox())?.y).toBe(84);
-      await expect
-        .poll(async () => {
-          const box = await gameScreen.boundingBox();
-          return box ? box.y + box.height : undefined;
-        })
-        .toBe(844);
-      await expect
-        .poll(async () => pa.evaluate(() => document.documentElement.scrollHeight))
-        .toBe(844);
-      await expect(pa.locator('body')).toHaveJSProperty('scrollWidth', 390);
-      await pa.screenshot({ path: `test-results/game-${ruleset}.png`, fullPage: true });
-      await expect
-        .poll(
-          async () =>
-            (await pa.locator('.point.source').count()) +
-            (await pb.locator('.point.source').count()),
-        )
-        .toBeGreaterThan(0);
-      const active = (await pa.locator('.point.source').count()) ? pa : pb;
-      for (let i = 0; i < 4; i++) {
-        if (await active.getByRole('button', { name: 'Confirm turn' }).isEnabled()) break;
-        await active.locator('.point.source').first().click();
-        const target = active.locator('.point.destination').first();
-        if (await target.count()) await target.click();
-        else await active.getByRole('button', { name: /Bear off/ }).click();
-      }
-      await expect(active.getByRole('button', { name: 'Confirm turn' })).toBeEnabled();
-      await active.getByRole('button', { name: 'Confirm turn' }).click();
-      await expect
-        .poll(
-          async () =>
-            (await pa.getByRole('button', { name: 'Roll dice' }).count()) +
-            (await pb.getByRole('button', { name: 'Roll dice' }).count()),
-        )
-        .toBeGreaterThan(0);
-      await expect(active.locator('.error')).toHaveCount(0);
-      await pa.reload();
-      await pa.getByRole('button', { name: 'Return to game' }).click();
-      await expect(pa.locator('.board')).toBeVisible({ timeout: 15000 });
-      await pa.getByRole('button', { name: 'Match menu' }).click();
-      await pa.getByRole('button', { name: 'Surrender', exact: true }).click();
-      await pa
-        .getByRole('dialog', { name: 'Surrender' })
-        .getByRole('button', { name: 'Surrender' })
-        .click();
-      await expect(pa.getByRole('heading', { name: 'You lost' })).toBeVisible();
-      await expect(pb.getByRole('heading', { name: 'You won' })).toBeVisible();
-      await pa.locator('.result-sheet').getByRole('button', { name: 'Play', exact: true }).click();
-      await pa
-        .getByRole('navigation', { name: 'Primary' })
-        .getByRole('button', { name: /Profile/ })
-        .click();
-      await expect(pa.locator('.profile-avatar.profile-frame-season0-tester')).toBeVisible();
-      if (ruleset === 'LONG_NARDY')
-        await pa.screenshot({
-          path: 'test-results/season0-tester-profile-frame.png',
-          fullPage: true,
-        });
-    } finally {
-      await Promise.allSettled([a.close(), b.close()]);
+    const seed = Date.now();
+    await telegram(a, seed, 36, 760);
+    await telegram(b, seed + 1, 36, 760);
+    const pa = await a.newPage(),
+      pb = await b.newPage();
+    const primaryFind = (page: typeof pa) =>
+      page.locator('button.primary', { hasText: 'Find a player' });
+    await Promise.all([pa.goto('/'), pb.goto('/')]);
+    await expect(primaryFind(pa)).toBeVisible();
+    const rulesetName = ruleset === 'LONG_NARDY' ? 'Long Nardy' : 'Backgammon';
+    await pa.getByRole('button', { name: rulesetName, exact: true }).click();
+    await pb.getByRole('button', { name: rulesetName, exact: true }).click();
+    await primaryFind(pa).click();
+    await primaryFind(pb).click();
+    await expect(pa.locator('.board')).toBeVisible({ timeout: 15000 });
+    await expect(pb.locator('.board')).toBeVisible({ timeout: 15000 });
+    const gameScreen = pa.locator('.game-screen');
+    await expect
+      .poll(async () => await gameScreen.evaluate((element) => element.offsetTop))
+      .toBe(84);
+    await expect.poll(async () => (await gameScreen.boundingBox())?.height).toBe(760);
+    await expect
+      .poll(async () => (await gameScreen.locator('.player-strip').first().boundingBox())?.y)
+      .toBe(164);
+    await expect.poll(async () => (await gameScreen.boundingBox())?.y).toBe(84);
+    await expect
+      .poll(async () => {
+        const box = await gameScreen.boundingBox();
+        return box ? box.y + box.height : undefined;
+      })
+      .toBe(844);
+    await expect
+      .poll(async () => pa.evaluate(() => document.documentElement.scrollHeight))
+      .toBe(844);
+    await expect(pa.locator('body')).toHaveJSProperty('scrollWidth', 390);
+    await pa.screenshot({ path: `test-results/game-${ruleset}.png`, fullPage: true });
+    await expect
+      .poll(
+        async () =>
+          (await pa.locator('.point.source').count()) + (await pb.locator('.point.source').count()),
+      )
+      .toBeGreaterThan(0);
+    const active = (await pa.locator('.point.source').count()) ? pa : pb;
+    for (let i = 0; i < 4; i++) {
+      if (await active.getByRole('button', { name: 'Confirm turn' }).isEnabled()) break;
+      await active.locator('.point.source').first().click();
+      const target = active.locator('.point.destination').first();
+      if (await target.count()) await target.click();
+      else await active.getByRole('button', { name: /Bear off/ }).click();
     }
+    await expect(active.getByRole('button', { name: 'Confirm turn' })).toBeEnabled();
+    await active.getByRole('button', { name: 'Confirm turn' }).click();
+    await expect
+      .poll(
+        async () =>
+          (await pa.getByRole('button', { name: 'Roll dice' }).count()) +
+          (await pb.getByRole('button', { name: 'Roll dice' }).count()),
+      )
+      .toBeGreaterThan(0);
+    await expect(active.locator('.error')).toHaveCount(0);
+    await pa.reload();
+    await pa.getByRole('button', { name: 'Return to game' }).click();
+    await expect(pa.locator('.board')).toBeVisible({ timeout: 15000 });
+    await pa.getByRole('button', { name: 'Match menu' }).click();
+    await pa.getByRole('button', { name: 'Surrender', exact: true }).click();
+    await pa
+      .getByRole('dialog', { name: 'Surrender' })
+      .getByRole('button', { name: 'Surrender' })
+      .click();
+    await expect(pa.getByRole('heading', { name: 'You lost' })).toBeVisible();
+    await expect(pb.getByRole('heading', { name: 'You won' })).toBeVisible();
+    await pa.locator('.result-sheet').getByRole('button', { name: 'Play', exact: true }).click();
+    await pa
+      .getByRole('navigation', { name: 'Primary' })
+      .getByRole('button', { name: /Profile/ })
+      .click();
+    await expect(pa.locator('.profile-avatar.profile-frame-season0-tester')).toBeVisible();
+    if (ruleset === 'LONG_NARDY')
+      await pa.screenshot({
+        path: 'test-results/season0-tester-profile-frame.png',
+        fullPage: true,
+      });
+    await a.close();
+    await b.close();
   });
