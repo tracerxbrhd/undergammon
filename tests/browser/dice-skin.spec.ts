@@ -79,7 +79,9 @@ test('Obsidian Dice purchase, equip, and owner-aware match presentation', async 
   try {
     await Promise.all([adminPage.goto('/'), ownerPage.goto('/'), opponentPage.goto('/')]);
     await expect(ownerPage.locator('button.primary', { hasText: 'Find a player' })).toBeVisible();
-    await expect(opponentPage.locator('button.primary', { hasText: 'Find a player' })).toBeVisible();
+    await expect(
+      opponentPage.locator('button.primary', { hasText: 'Find a player' }),
+    ).toBeVisible();
 
     const owner = await ownerPage.evaluate(async () => {
       const response = await fetch('/api/me');
@@ -108,12 +110,16 @@ test('Obsidian Dice purchase, equip, and owner-aware match presentation', async 
     await expect(obsidianProduct).toBeVisible();
     await expect(obsidianProduct.getByText('250 Coins', { exact: true })).toBeVisible();
     await obsidianProduct.getByRole('button', { name: 'Buy', exact: true }).click();
-    await expect(obsidianProduct.getByRole('button', { name: 'Owned', exact: true })).toBeDisabled();
+    await expect(
+      obsidianProduct.getByRole('button', { name: 'Owned', exact: true }),
+    ).toBeDisabled();
 
     await ownerNavigation.getByRole('button', { name: /Cosmetics/ }).click();
     const obsidianOwned = ownerPage.locator('.cosmetic-card', { hasText: 'Obsidian Dice' });
     await obsidianOwned.getByRole('button', { name: 'Equip', exact: true }).click();
-    await expect(obsidianOwned.getByRole('button', { name: 'Equipped', exact: true })).toBeDisabled();
+    await expect(
+      obsidianOwned.getByRole('button', { name: 'Equipped', exact: true }),
+    ).toBeDisabled();
 
     await ownerNavigation.getByRole('button', { name: /Play/ }).click();
     await Promise.all([
@@ -146,10 +152,6 @@ test('Obsidian Dice purchase, equip, and owner-aware match presentation', async 
       await noContest(adminPage, matchId).catch(() => undefined);
     }
     await Promise.all([cancelQueue(ownerPage), cancelQueue(opponentPage)]);
-    await Promise.allSettled([
-      adminContext.close(),
-      ownerContext.close(),
-      opponentContext.close(),
-    ]);
+    await Promise.allSettled([adminContext.close(), ownerContext.close(), opponentContext.close()]);
   }
 });
