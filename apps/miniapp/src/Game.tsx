@@ -7,7 +7,7 @@ import {
   type BackgammonBoardState,
 } from '@undergammon/game-engine';
 import type { MatchResultProgression, MatchSnapshot, Reaction } from '@undergammon/protocol';
-import { connectMatch } from './realtime';
+import { connectMatch, type MatchControlState } from './realtime';
 import { copy, rules, avatarEmoji, message, type Language } from './content';
 import { api, platform, feedbackSound } from './platform';
 import { BottomSheet, ProgressBar } from './ui';
@@ -38,7 +38,7 @@ export function Game({
   const [draft, setDraft] = useState<Move[]>([]);
   const [selected, setSelected] = useState<number | 'BAR' | null>(null);
   const [online, setOnline] = useState(false);
-  const [control, setControl] = useState(true);
+  const [control, setControl] = useState<MatchControlState>('requesting');
   const [error, setError] = useState('');
   const [reaction, setReaction] = useState<{
     readonly accountId: string;
@@ -102,10 +102,8 @@ export function Game({
           setSnapshot(event.snapshot);
           setDraft([]);
           setSelected(null);
-        } else if (event.type === 'CONTROL_LOST') setControl(false);
-        else if (event.type === 'ERROR') {
+        } else if (event.type === 'ERROR') {
           setError(event.code);
-          if (event.code === 'CONTROL_LOST') setControl(false);
         } else if (event.type === 'REACTION') {
           setReaction({ accountId: event.accountId, reaction: event.reaction });
           if (reactionTimer.current) clearTimeout(reactionTimer.current);
@@ -116,6 +114,7 @@ export function Game({
         }
       },
       setOnline,
+      setControl,
     );
     transport.current = c;
     const interval = setInterval(() => setNow(Date.now()), 250);
@@ -165,7 +164,7 @@ export function Game({
   const yourTurn =
     s.game.activePlayer === seat &&
     s.status === 'ACTIVE' &&
-    control &&
+    control === 'owned' &&
     online &&
     now + offset >= (s.turnStartsAt ?? 0);
   const canDraft = yourTurn && !frame && s.game.phase === 'AWAITING_MOVE';
@@ -261,17 +260,14 @@ export function Game({
         </strong>
       </div>
 
-      {!control ? (
-        <div className="control-overlay glass glass-strong">
-          <p>{t.controlLost}</p>
-          <button
-            onClick={() => {
-              transport.current?.send('OPEN');
-              setControl(true);
-            }}
-          >
-            {t.takeover}
-          </button>
+      {control !== 'owned' ? (
+        <div className="control-overlay glass glass-strong" aria-live="polite">
+          <p>{control === 'lost' ? t.controlLost : t.reconnecting}</p>
+          {control === 'lost' && (
+            <button disabled={!online} onClick={() => transport.current?.requestControl()}>
+              {t.takeover}
+            </button>
+          )}
         </div>
       ) : s.status === 'ACTIVE' ? (
         <div className="action-dock glass glass-strong">
