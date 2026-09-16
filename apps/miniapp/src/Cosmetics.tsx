@@ -4,6 +4,7 @@ import {
   checkerSetIdSchema,
   diceSkinIdSchema,
   profileFrameIdSchema,
+  reactionPackIdSchema,
   type CosmeticId,
   type CosmeticSlot,
   type CosmeticsInventory,
@@ -112,6 +113,17 @@ export function Cosmetics({
         }),
       ]
     : [];
+  const reactionItems: CosmeticItem[] = inventory
+    ? [
+        { slot: 'REACTION_PACK', cosmeticId: 'default' },
+        ...ownedIds('REACTION_PACK').flatMap((id) => {
+          const parsed = reactionPackIdSchema.safeParse(id);
+          return parsed.success && parsed.data !== 'default'
+            ? [{ slot: 'REACTION_PACK' as const, cosmeticId: parsed.data }]
+            : [];
+        }),
+      ]
+    : [];
 
   const equippedId = (slot: CosmeticSlot): CosmeticId => {
     if (!inventory) return 'default';
@@ -119,6 +131,7 @@ export function Cosmetics({
     if (slot === 'CHECKER_SET') return inventory.equipped.checkerSet ?? 'default';
     if (slot === 'DICE_SKIN') return inventory.equipped.diceSkin ?? 'default';
     if (slot === 'BOARD_THEME') return inventory.equipped.boardTheme ?? 'default';
+    if (slot === 'REACTION_PACK') return inventory.equipped.reactionPack ?? 'default';
     const unsupportedSlot: never = slot;
     throw new Error(`Unsupported cosmetic slot: ${unsupportedSlot}`);
   };
@@ -193,6 +206,7 @@ export function Cosmetics({
           {renderSection('CHECKER_SET', checkerItems)}
           {renderSection('DICE_SKIN', diceItems)}
           {renderSection('BOARD_THEME', boardItems)}
+          {renderSection('REACTION_PACK', reactionItems)}
         </>
       )}
     </section>
