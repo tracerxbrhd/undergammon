@@ -1,7 +1,7 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
 import { createHmac } from 'node:crypto';
 
-async function telegram(context: BrowserContext, id: number) {
+async function telegram(context: BrowserContext, id: number, forwardedFor: string) {
   const params = new URLSearchParams({
     auth_date: String(Math.floor(Date.now() / 1000)),
     user: JSON.stringify({ id, language_code: 'en' }),
@@ -14,6 +14,7 @@ async function telegram(context: BrowserContext, id: number) {
     .update('123456:testing-token-no-real-secret')
     .digest();
   params.set('hash', createHmac('sha256', secret).update(data).digest('hex'));
+  await context.setExtraHTTPHeaders({ 'X-Forwarded-For': forwardedFor });
   await context.route('https://telegram.org/**', (route) => route.abort());
   await context.addInitScript((raw) => {
     Object.assign(window, {
@@ -37,8 +38,8 @@ async function telegram(context: BrowserContext, id: number) {
 test('Obsidian Dice purchase and equipment persist through reload', async ({ browser }) => {
   const adminContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const ownerContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await telegram(adminContext, 900000001);
-  await telegram(ownerContext, 910000001);
+  await telegram(adminContext, 900000001, '198.51.100.10');
+  await telegram(ownerContext, 910000001, '198.51.100.11');
 
   const adminPage = await adminContext.newPage();
   const ownerPage = await ownerContext.newPage();
