@@ -32,6 +32,13 @@ export const cosmeticDefinitions: readonly CosmeticDefinition[] = [
     priceCoins: 250,
     purchasable: true,
   },
+  { id: 'default', slot: 'BOARD_THEME', purchasable: false },
+  {
+    id: 'midnight_board',
+    slot: 'BOARD_THEME',
+    priceCoins: 300,
+    purchasable: true,
+  },
 ];
 
 export const purchasableCosmetics: readonly PurchasableCosmeticDefinition[] =

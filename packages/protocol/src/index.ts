@@ -23,7 +23,12 @@ export const commandSchema = z
 export type Command = z.infer<typeof commandSchema>;
 export type Ruleset = z.infer<typeof rulesetSchema>;
 export type Mode = z.infer<typeof modeSchema>;
-export const cosmeticSlotSchema = z.enum(['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN']);
+export const cosmeticSlotSchema = z.enum([
+  'PROFILE_FRAME',
+  'CHECKER_SET',
+  'DICE_SKIN',
+  'BOARD_THEME',
+]);
 export type CosmeticSlot = z.infer<typeof cosmeticSlotSchema>;
 export const profileFrameIdSchema = z.enum([
   'default',
@@ -35,13 +40,17 @@ export const checkerSetIdSchema = z.enum(['default', 'marble_checker_set']);
 export type CheckerSetId = z.infer<typeof checkerSetIdSchema>;
 export const diceSkinIdSchema = z.enum(['default', 'obsidian_dice']);
 export type DiceSkinId = z.infer<typeof diceSkinIdSchema>;
-export type CosmeticId = ProfileFrameId | CheckerSetId | DiceSkinId;
+export const boardThemeIdSchema = z.enum(['default', 'midnight_board']);
+export type BoardThemeId = z.infer<typeof boardThemeIdSchema>;
+export type CosmeticId = ProfileFrameId | CheckerSetId | DiceSkinId | BoardThemeId;
 export interface EquippedCosmetics {
   profileFrame: ProfileFrameId;
   /** Missing means Default, including snapshots written before Checker Sets existed. */
   checkerSet?: CheckerSetId;
   /** Missing means Default, including snapshots written before Dice Skins existed. */
   diceSkin?: DiceSkinId;
+  /** Missing means Default, including snapshots written before Board Themes existed. */
+  boardTheme?: BoardThemeId;
 }
 export interface OwnedCosmetic {
   cosmeticId: string;

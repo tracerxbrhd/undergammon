@@ -1,5 +1,6 @@
 import type { PlayerId } from '@undergammon/game-engine';
 import type {
+  BoardThemeId,
   CheckerSetId,
   DiceSkinId,
   EquippedCosmetics,
@@ -54,6 +55,14 @@ const defaultPresentations = {
   reactionPack: { id: 'default', className: 'reaction-pack-default' },
 } as const;
 
+const boardThemes: Record<BoardThemeId, BoardThemePresentation> = {
+  default: defaultPresentations.boardTheme,
+  midnight_board: {
+    id: 'midnight_board',
+    className: 'board-theme-midnight',
+  },
+};
+
 const checkerSets: Record<CheckerSetId, CheckerSetPresentation> = {
   default: defaultPresentations.checkerSet,
   marble_checker_set: {
@@ -81,6 +90,10 @@ const profileFrames: Record<ProfileFrameId, ProfileFramePresentation> = {
     className: 'profile-frame-bronze',
   },
 };
+
+export function resolveBoardTheme(id: BoardThemeId): BoardThemePresentation {
+  return boardThemes[id];
+}
 
 export function resolveCheckerSet(id: CheckerSetId): CheckerSetPresentation {
   return checkerSets[id];
@@ -116,8 +129,14 @@ export function resolveMatchCosmetics({
   const opponentSeat: PlayerId = localSeat === 'A' ? 'B' : 'A';
   return {
     board: {
-      localTheme: withOwner(localSeat, defaultPresentations.boardTheme),
-      opponentTheme: withOwner(opponentSeat, defaultPresentations.boardTheme),
+      localTheme: withOwner(
+        localSeat,
+        resolveBoardTheme(players?.[localSeat]?.cosmetics?.boardTheme ?? 'default'),
+      ),
+      opponentTheme: withOwner(
+        opponentSeat,
+        resolveBoardTheme(players?.[opponentSeat]?.cosmetics?.boardTheme ?? 'default'),
+      ),
     },
     checkers: {
       localSet: withOwner(

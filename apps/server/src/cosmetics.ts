@@ -7,7 +7,12 @@ import type {
   StoreProduct,
   StorePurchaseResult,
 } from '@undergammon/protocol';
-import { checkerSetIdSchema, diceSkinIdSchema, profileFrameIdSchema } from '@undergammon/protocol';
+import {
+  boardThemeIdSchema,
+  checkerSetIdSchema,
+  diceSkinIdSchema,
+  profileFrameIdSchema,
+} from '@undergammon/protocol';
 import { rows, transaction, type Db } from './db.js';
 import { applyCoins } from './economy.js';
 import {
@@ -21,6 +26,11 @@ import {
 
 const PROFILE_FRAME: CosmeticSlot = 'PROFILE_FRAME';
 const TESTER_FRAME = 'season0_tester_frame';
+const LEGACY_DEFAULT_STORE_SLOTS: readonly CosmeticSlot[] = [
+  'PROFILE_FRAME',
+  'CHECKER_SET',
+  'DICE_SKIN',
+];
 
 export async function equippedCosmetics(
   db: Db | pg.Pool,
@@ -29,16 +39,18 @@ export async function equippedCosmetics(
   const equipped = await rows<{ slot: CosmeticSlot; cosmetic_id: string }>(
     db,
     'SELECT slot,cosmetic_id FROM cosmetic_equipment WHERE account_id=$1 AND slot=ANY($2::text[])',
-    [accountId, ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN']],
+    [accountId, ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN', 'BOARD_THEME']],
   );
   const bySlot = new Map(equipped.map((item) => [item.slot, item.cosmetic_id]));
   const profileFrame = profileFrameIdSchema.safeParse(bySlot.get('PROFILE_FRAME') ?? 'default');
   const checkerSet = checkerSetIdSchema.safeParse(bySlot.get('CHECKER_SET'));
   const diceSkin = diceSkinIdSchema.safeParse(bySlot.get('DICE_SKIN'));
+  const boardTheme = boardThemeIdSchema.safeParse(bySlot.get('BOARD_THEME'));
   return {
     profileFrame: profileFrame.success ? profileFrame.data : ('default' satisfies ProfileFrameId),
     ...(checkerSet.success && checkerSet.data !== 'default' ? { checkerSet: checkerSet.data } : {}),
     ...(diceSkin.success && diceSkin.data !== 'default' ? { diceSkin: diceSkin.data } : {}),
+    ...(boardTheme.success && boardTheme.data !== 'default' ? { boardTheme: boardTheme.data } : {}),
   };
 }
 
@@ -104,7 +116,7 @@ export async function equipCosmetic(
 export async function storeProducts(
   db: Db | pg.Pool,
   accountId: string,
-  slots: readonly CosmeticSlot[] = ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN'],
+  slots: readonly CosmeticSlot[] = LEGACY_DEFAULT_STORE_SLOTS,
 ): Promise<StoreProduct[]> {
   const owned = new Set(
     (

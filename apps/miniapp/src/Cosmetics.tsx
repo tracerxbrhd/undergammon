@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  boardThemeIdSchema,
   checkerSetIdSchema,
   diceSkinIdSchema,
   profileFrameIdSchema,
@@ -100,12 +101,24 @@ export function Cosmetics({
         }),
       ]
     : [];
+  const boardItems: CosmeticItem[] = inventory
+    ? [
+        { slot: 'BOARD_THEME', cosmeticId: 'default' },
+        ...ownedIds('BOARD_THEME').flatMap((id) => {
+          const parsed = boardThemeIdSchema.safeParse(id);
+          return parsed.success && parsed.data !== 'default'
+            ? [{ slot: 'BOARD_THEME' as const, cosmeticId: parsed.data }]
+            : [];
+        }),
+      ]
+    : [];
 
   const equippedId = (slot: CosmeticSlot): CosmeticId => {
     if (!inventory) return 'default';
     if (slot === 'PROFILE_FRAME') return inventory.equipped.profileFrame;
     if (slot === 'CHECKER_SET') return inventory.equipped.checkerSet ?? 'default';
     if (slot === 'DICE_SKIN') return inventory.equipped.diceSkin ?? 'default';
+    if (slot === 'BOARD_THEME') return inventory.equipped.boardTheme ?? 'default';
     const unsupportedSlot: never = slot;
     throw new Error(`Unsupported cosmetic slot: ${unsupportedSlot}`);
   };
@@ -179,6 +192,7 @@ export function Cosmetics({
           {renderSection('PROFILE_FRAME', frameItems)}
           {renderSection('CHECKER_SET', checkerItems)}
           {renderSection('DICE_SKIN', diceItems)}
+          {renderSection('BOARD_THEME', boardItems)}
         </>
       )}
     </section>

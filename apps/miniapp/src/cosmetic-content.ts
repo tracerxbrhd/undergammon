@@ -41,6 +41,17 @@ const copy: Readonly<Record<string, CosmeticCopy>> = {
       'Дымчатый обсидиан с контрастными светлыми точками.',
     ],
   },
+  'BOARD_THEME:default': {
+    name: ['Default Board', 'Стандартная доска'],
+    description: ['Warm classic board presentation.', 'Классическое тёплое оформление доски.'],
+  },
+  'BOARD_THEME:midnight_board': {
+    name: ['Midnight Board', 'Полуночная доска'],
+    description: [
+      'Cool midnight slate with high-contrast points for hybrid matches.',
+      'Холодная полуночная палитра с контрастными пунктами для гибридных матчей.',
+    ],
+  },
 };
 
 function key(slot: CosmeticSlot, cosmeticId: string): string {
@@ -65,6 +76,7 @@ export function cosmeticSlotLabel(slot: CosmeticSlot, language: Language): strin
   if (slot === 'PROFILE_FRAME') return language === 'ru' ? 'Рамки профиля' : 'Profile Frames';
   if (slot === 'CHECKER_SET') return language === 'ru' ? 'Наборы шашек' : 'Checker Sets';
   if (slot === 'DICE_SKIN') return language === 'ru' ? 'Кости' : 'Dice Skins';
+  if (slot === 'BOARD_THEME') return language === 'ru' ? 'Темы доски' : 'Board Themes';
   const unsupportedSlot: never = slot;
   throw new Error(`Unsupported cosmetic slot: ${unsupportedSlot}`);
 }

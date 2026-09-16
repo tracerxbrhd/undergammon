@@ -11,7 +11,12 @@ interface Notice {
   readonly text: string;
 }
 
-const storeSlots: readonly CosmeticSlot[] = ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN'];
+const storeSlots: readonly CosmeticSlot[] = [
+  'PROFILE_FRAME',
+  'CHECKER_SET',
+  'DICE_SKIN',
+  'BOARD_THEME',
+];
 
 function productKey(product: Pick<StoreProduct, 'slot' | 'cosmeticId'>): string {
   return `${product.slot}:${product.cosmeticId}`;

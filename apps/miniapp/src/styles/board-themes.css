@@ -1,0 +1,97 @@
+.board-theme-default {
+  --board-theme-field: var(--board-field);
+  --board-theme-point-light: var(--point-light);
+  --board-theme-point-dark: var(--point-dark);
+}
+
+.board-theme-midnight {
+  --board-theme-field: #596178;
+  --board-theme-point-light: #c3c9dc;
+  --board-theme-point-dark: #554664;
+}
+
+.board {
+  position: relative;
+}
+
+.board-theme-region,
+.board-theme-shared {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.board-theme-region {
+  height: 43.5%;
+  background:
+    linear-gradient(90deg, #00000016, transparent 20%, #ffffff12 50%, transparent 80%),
+    var(--board-theme-field);
+}
+
+.board-theme-region-top {
+  top: 0;
+}
+
+.board-theme-region-bottom {
+  bottom: 0;
+}
+
+.board-theme-shared {
+  top: 43.5%;
+  height: 13%;
+  border-block: 1px solid #ffffff12;
+  background:
+    linear-gradient(90deg, #0000001c, transparent 22%, #ffffff0d 50%, transparent 78%, #0000001c),
+    var(--board-field);
+  box-shadow:
+    inset 0 5px 8px #00000018,
+    inset 0 -5px 8px #00000018;
+}
+
+.board .point {
+  z-index: 1;
+}
+
+.board .point::before {
+  background: var(--board-theme-point-light, var(--point-light));
+}
+
+.board .point.dark::before {
+  background: var(--board-theme-point-dark, var(--point-dark));
+}
+
+.board-theme-preview {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: 1fr 6px 1fr;
+  padding: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--board-theme-field);
+  box-shadow: inset 0 0 0 2px #00000024;
+}
+
+.board-theme-preview > span {
+  background: var(--board-theme-point-light);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.board-theme-preview > span.dark {
+  background: var(--board-theme-point-dark);
+}
+
+.board-theme-preview > span.bottom {
+  grid-row: 3;
+  transform: rotate(180deg);
+}
+
+.board-theme-preview > i {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  background: linear-gradient(90deg, #00000022, #ffffff14 50%, #00000022);
+}

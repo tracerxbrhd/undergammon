@@ -1,6 +1,7 @@
-import { it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { initialGame, openGame, legalTurns } from '@undergammon/game-engine';
-import { commandSchema } from '../src/index.js';
+import { boardThemeIdSchema, commandSchema, cosmeticSlotSchema } from '../src/index.js';
+
 it('accepts every shared engine opening turn as a strict wire command', () => {
   for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'] as const)
     for (const moves of legalTurns(openGame(initialGame(ruleset), [6, 2]))) {
@@ -15,4 +16,12 @@ it('accepts every shared engine opening turn as a strict wire command', () => {
         }),
       ).not.toThrow();
     }
+});
+
+describe('cosmetic contracts', () => {
+  it('accepts only trusted Board Theme slot and ids', () => {
+    expect(cosmeticSlotSchema.parse('BOARD_THEME')).toBe('BOARD_THEME');
+    expect(boardThemeIdSchema.parse('midnight_board')).toBe('midnight_board');
+    expect(boardThemeIdSchema.safeParse('remote_css').success).toBe(false);
+  });
 });
