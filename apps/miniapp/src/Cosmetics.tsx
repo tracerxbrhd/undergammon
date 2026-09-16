@@ -105,7 +105,9 @@ export function Cosmetics({
     if (!inventory) return 'default';
     if (slot === 'PROFILE_FRAME') return inventory.equipped.profileFrame;
     if (slot === 'CHECKER_SET') return inventory.equipped.checkerSet ?? 'default';
-    return inventory.equipped.diceSkin ?? 'default';
+    if (slot === 'DICE_SKIN') return inventory.equipped.diceSkin ?? 'default';
+    const unsupportedSlot: never = slot;
+    throw new Error(`Unsupported cosmetic slot: ${unsupportedSlot}`);
   };
 
   const renderSection = (slot: CosmeticSlot, items: readonly CosmeticItem[]) => (
