@@ -8,6 +8,7 @@ This directory is the documentation hub for UNDERGAMMON.
 - [Architecture](architecture/) — accepted technical and deployment decisions.
 - [Development](development/README.md) — local setup, tests and repository verification.
 - [Operations](operations/README.md) — production deployment, migrations, webhook setup and backup/restore.
+- [Update 2 release candidate](operations/update-2-release.md) — feature-freeze boundary, automated gate, real Telegram acceptance and production release checklist.
 - [Branding](assets/branding/) — repository-facing visual assets.
 - [Archive](archive/) — historical implementation material kept for reference.
 
