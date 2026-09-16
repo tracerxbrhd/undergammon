@@ -54,7 +54,10 @@ const copy: Readonly<Record<string, CosmeticCopy>> = {
   },
   'REACTION_PACK:default': {
     name: ['Default Reactions', 'Стандартные реакции'],
-    description: ['Classic emoji reactions for matches.', 'Классические эмодзи-реакции для матчей.'],
+    description: [
+      'Classic emoji reactions for matches.',
+      'Классические эмодзи-реакции для матчей.',
+    ],
   },
   'REACTION_PACK:neon_reactions': {
     name: ['Neon Reactions', 'Неоновые реакции'],
