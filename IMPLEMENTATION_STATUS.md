@@ -37,7 +37,7 @@ PR 3 is implemented in this change and adds:
 - `DICE_SKIN` as a functional Store, ownership and equipment slot alongside Profile Frames and Checker Sets;
 - independent Dice Skin equipment with `Default` fallback and no purchase auto-equip;
 - trusted equipped Dice Skins captured in new match snapshots;
-- owner-aware hybrid match presentation where one visible die uses the local player's Dice Skin and the other uses the opponent's Dice Skin;
+- authoritative owner-aware match presentation: opening dice map to seats A/B, while normal-turn dice both use the active player's Dice Skin;
 - application-controlled CSS presentation that preserves fixed dice geometry and high-contrast pips.
 
 PR 3 does not change dice generation, authoritative roll values, game-engine rules, move legality or BoardScene interaction geometry. It is not production-verified until it is merged, deployed and exercised on real Telegram clients.
@@ -102,7 +102,7 @@ Update 1 final verification for PR #11 passed the repository's production verifi
 
 The repository CI definition runs the same core build/lint/format/typecheck/test/E2E/audit/Compose checks against an isolated PostgreSQL service. Tests and exact local commands are documented in [`docs/development/README.md`](docs/development/README.md). Integration tests truncate their test database: never point `TEST_DATABASE_URL` at production data.
 
-PR 3 adds focused catalog/resolver/integration coverage plus an end-to-end Obsidian Dice purchase -> equip -> two-player match-presentation scenario. Its verification result should be taken from the PR CI run rather than inferred from this document.
+PR 3 adds focused catalog/resolver/integration coverage plus an end-to-end Obsidian Dice purchase -> equip -> reload-persistence scenario. BoardScene unit coverage verifies opening-roll owner mapping and active-player Dice Skin mapping for both supported rulesets. Its verification result should be taken from the PR CI run rather than inferred from this document.
 
 ## Current release position
 
