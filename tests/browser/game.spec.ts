@@ -325,7 +325,8 @@ for (const ruleset of ['LONG_NARDY', 'BACKGAMMON'])
       await expect
         .poll(
           async () =>
-            (await pa.locator('.point.source').count()) + (await pb.locator('.point.source').count()),
+            (await pa.locator('.point.source').count()) +
+            (await pb.locator('.point.source').count()),
         )
         .toBeGreaterThan(0);
       const active = (await pa.locator('.point.source').count()) ? pa : pb;
