@@ -143,10 +143,6 @@ test('Obsidian Dice purchase, equip, and owner-aware match presentation', async 
   } finally {
     if (matchId && !matchCleaned) await noContest(adminPage, matchId).catch(() => undefined);
     await Promise.all([cancelQueue(ownerPage), cancelQueue(opponentPage)]);
-    await Promise.allSettled([
-      adminContext.close(),
-      ownerContext.close(),
-      opponentContext.close(),
-    ]);
+    await Promise.allSettled([adminContext.close(), ownerContext.close(), opponentContext.close()]);
   }
 });
