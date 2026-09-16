@@ -6,14 +6,17 @@ import {
   type BoardState,
   type BackgammonBoardState,
 } from '@undergammon/game-engine';
-import type { MatchResultProgression, MatchSnapshot } from '@undergammon/protocol';
+import type { MatchResultProgression, MatchSnapshot, Reaction } from '@undergammon/protocol';
 import { connectMatch } from './realtime';
 import { copy, rules, avatarEmoji, message, type Language } from './content';
 import { api, platform, feedbackSound } from './platform';
 import { BottomSheet, ProgressBar } from './ui';
 import { CloseIcon, MoreIcon, ReactionIcon } from './ui/icons';
 import { BoardScene } from './game/BoardScene';
-import { resolveMatchCosmetics } from './game/cosmetics';
+import { resolveMatchCosmetics, resolveReactionVisual } from './game/cosmetics';
+import './styles/reaction-packs.css';
+
+const reactionOptions: readonly Reaction[] = ['WAVE', 'NICE', 'GG'];
 
 export function Game({
   matchId,
@@ -37,7 +40,10 @@ export function Game({
   const [online, setOnline] = useState(false);
   const [control, setControl] = useState(true);
   const [error, setError] = useState('');
-  const [reaction, setReaction] = useState('');
+  const [reaction, setReaction] = useState<{
+    readonly accountId: string;
+    readonly reaction: Reaction;
+  } | null>(null);
   const [menu, setMenu] = useState(false);
   const [reactions, setReactions] = useState(false);
   const [confirmSurrender, setConfirmSurrender] = useState(false);
@@ -49,6 +55,7 @@ export function Game({
   const [recent, setRecent] = useState<{ move: Move; player: 'A' | 'B' } | null>(null);
   const current = useRef<MatchSnapshot | null>(null);
   const transport = useRef<ReturnType<typeof connectMatch> | null>(null);
+  const reactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const animations: ReturnType<typeof setTimeout>[] = [];
@@ -100,8 +107,12 @@ export function Game({
           setError(event.code);
           if (event.code === 'CONTROL_LOST') setControl(false);
         } else if (event.type === 'REACTION') {
-          setReaction(event.reaction === 'WAVE' ? '👋' : event.reaction === 'NICE' ? '👏' : '🤝');
-          setTimeout(() => setReaction(''), 2500);
+          setReaction({ accountId: event.accountId, reaction: event.reaction });
+          if (reactionTimer.current) clearTimeout(reactionTimer.current);
+          reactionTimer.current = setTimeout(() => {
+            setReaction(null);
+            reactionTimer.current = null;
+          }, 2500);
         }
       },
       setOnline,
@@ -111,6 +122,8 @@ export function Game({
     return () => {
       clearInterval(interval);
       animations.forEach(clearTimeout);
+      if (reactionTimer.current) clearTimeout(reactionTimer.current);
+      reactionTimer.current = null;
       c.close();
     };
   }, [matchId]);
@@ -143,6 +156,12 @@ export function Game({
   const seat = s.players.A.accountId === accountId ? 'A' : 'B';
   const opponent = seat === 'A' ? 'B' : 'A';
   const cosmetics = resolveMatchCosmetics({ localSeat: seat, players: s.players });
+  const localReactionPack = cosmetics.reactions.localPack.presentation;
+  const opponentReactionPack = cosmetics.reactions.opponentPack.presentation;
+  const opponentReaction =
+    reaction?.accountId === s.players[opponent].accountId
+      ? resolveReactionVisual(opponentReactionPack.id, reaction.reaction)
+      : null;
   const yourTurn =
     s.game.activePlayer === seat &&
     s.status === 'ACTIVE' &&
@@ -191,7 +210,11 @@ export function Game({
             {s.players[opponent].connected ? t.connected : t.reconnecting}
           </small>
         </div>
-        <span className="reaction">{reaction}</span>
+        {opponentReaction && (
+          <span className={`reaction ${opponentReactionPack.className}`}>
+            {opponentReaction.content}
+          </span>
+        )}
         <strong className={seconds < 10 ? 'urgent timer' : 'timer'}>
           {s.game.activePlayer === opponent ? `${seconds}s` : ''}
         </strong>
@@ -299,16 +322,16 @@ export function Game({
           )}
 
           {reactions && (
-            <div
-              className={`reaction-picker glass glass-strong ${cosmetics.reactions.localPack.presentation.className}`}
-            >
-              {(['WAVE', 'NICE', 'GG'] as const).map((r, i) => (
+            <div className={`reaction-picker glass glass-strong ${localReactionPack.className}`}>
+              {reactionOptions.map((reactionOption) => (
                 <button
-                  key={r}
+                  key={reactionOption}
                   disabled={!online}
-                  onClick={() => transport.current?.send('REACTION', { reaction: r })}
+                  onClick={() =>
+                    transport.current?.send('REACTION', { reaction: reactionOption })
+                  }
                 >
-                  {['👋', '👏', '🤝'][i]}
+                  {resolveReactionVisual(localReactionPack.id, reactionOption).content}
                 </button>
               ))}
             </div>
