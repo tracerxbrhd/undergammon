@@ -23,7 +23,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@12.4.1
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec prettier apps/miniapp/src/cosmetic-content.ts apps/miniapp/src/Game.tsx packages/protocol/src/index.ts
       - run: pnpm build
       - run: pnpm lint
       - run: pnpm format:check
