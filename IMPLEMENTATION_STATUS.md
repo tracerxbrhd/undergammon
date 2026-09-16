@@ -44,7 +44,7 @@ PR 6 starts the production-hardening stage with controlling-session and reconnec
 - takeover intent survives a transient socket interruption and retries after reconnect;
 - an offline client cannot hide `CONTROL_LOST` by pressing the takeover action when no command was sent;
 - server-authoritative control ownership and match rules remain unchanged;
-- deterministic transport coverage and a multi-session browser scenario exercise the takeover/reconnect path.
+- deterministic transport coverage exercises acknowledgement, offline requests and reconnect retry semantics, while a multi-session browser scenario verifies real authoritative control transfer between two sessions of one Game Account.
 
 PR 6 is not production-verified until it is merged, deployed and exercised on real Telegram clients.
 
@@ -115,7 +115,7 @@ PR 4 added focused protocol/catalog/resolver coverage, BoardScene perspective te
 
 PR 5 added focused protocol/catalog/resolver coverage and an end-to-end Neon Reactions purchase -> equip -> reload -> new-match-snapshot -> realtime sender-owned presentation scenario.
 
-PR 6 adds transport-level tests for acknowledged controlling-session ownership plus a browser scenario with two sessions for one Game Account, offline recovery and explicit control transfer. Its final verification result should be taken from the PR CI run rather than inferred from this document.
+PR 6 adds transport-level tests for acknowledged controlling-session ownership, offline requests and reconnect retry, plus a browser scenario with two sessions for one Game Account that verifies explicit authoritative control transfer. Its final verification result should be taken from the PR CI run rather than inferred from this document.
 
 ## Current release position
 
