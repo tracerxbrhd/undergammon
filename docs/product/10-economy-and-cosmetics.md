@@ -160,8 +160,10 @@ Do not model a future Board Theme as one global `board-theme-*` class for the wh
 
 ### Dice skins
 
-- The visible dice pair combines both players' presentation slots: one die represents the local player's Dice Skin and the other the opponent's Dice Skin.
-- `Default` is used when a participant has no custom Dice Skin.
+- Dice Skin presentation follows authoritative dice ownership rather than fixed screen position.
+- During the opening roll, the first die belongs to seat A and the second die belongs to seat B, so each die uses that player's equipped Dice Skin.
+- During normal turns, both visible dice belong to the authoritative `activePlayer` and therefore both use that player's equipped Dice Skin.
+- `Default` is used when the relevant die owner has no custom Dice Skin.
 - Obsidian Dice is the first non-default implementation and changes presentation only.
 - Every Dice Skin must preserve excellent pip/value readability. Cosmetic rarity can never reduce gameplay clarity.
 - Dice Skin selection never changes authoritative roll generation, rolled values, move legality or any game-engine state.
