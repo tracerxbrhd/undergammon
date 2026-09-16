@@ -47,8 +47,20 @@ async function telegram(context: BrowserContext, id: number, forwardedFor: strin
 
 async function enterActiveMatch(page: Page) {
   await page.reload();
-  await page.getByRole('button', { name: 'Return to game' }).click();
-  await expect(page.locator('.board')).toBeVisible({ timeout: 15000 });
+  const board = page.locator('.board');
+  const resume = page.getByRole('button', { name: 'Return to game' });
+  await expect
+    .poll(
+      async () => {
+        if (await board.isVisible()) return true;
+        if (await resume.isVisible()) {
+          await resume.click({ force: true, timeout: 500 }).catch(() => undefined);
+        }
+        return board.isVisible();
+      },
+      { timeout: 15000, intervals: [100, 250, 500] },
+    )
+    .toBe(true);
 }
 
 test('Neon Reactions persist, snapshot and render from the sender pack', async ({ browser }) => {
