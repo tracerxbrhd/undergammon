@@ -92,147 +92,171 @@ async function expectCompactLayout(page: Page) {
   expect(cardsFit).toBe(true);
 }
 
-test('Update 2 release candidate flow holds on a compact Telegram viewport', async ({ browser }) => {
-  test.setTimeout(90000);
-  const adminContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  const ownerContext = await browser.newContext({ viewport: { width: 320, height: 640 } });
-  const opponentContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  await telegram(adminContext, 900000001, '198.51.100.51');
-  await telegram(ownerContext, 970000001, '198.51.100.52');
-  await telegram(opponentContext, 970000002, '198.51.100.53');
-
-  const adminPage = await adminContext.newPage();
-  const ownerPage = await ownerContext.newPage();
-  const opponentPage = await opponentContext.newPage();
-
-  try {
-    await Promise.all([adminPage.goto('/'), ownerPage.goto('/'), opponentPage.goto('/')]);
-    await expect(ownerPage.locator('button.primary', { hasText: 'Find a player' })).toBeVisible();
-
-    const owner = await ownerPage.evaluate(async () => {
-      const response = await fetch('/api/me');
-      if (!response.ok) throw new Error(`Could not load owner /api/me: ${response.status}`);
-      return (await response.json()) as { id: string };
+test(
+  'Update 2 release candidate flow holds on a compact Telegram viewport',
+  async ({ browser }) => {
+    test.setTimeout(90000);
+    const adminContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
     });
-    const opponent = await opponentPage.evaluate(async () => {
-      const response = await fetch('/api/me');
-      if (!response.ok) throw new Error(`Could not load opponent /api/me: ${response.status}`);
-      return (await response.json()) as { id: string };
+    const ownerContext = await browser.newContext({
+      viewport: { width: 320, height: 640 },
     });
+    const opponentContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+    });
+    await telegram(adminContext, 900000001, '198.51.100.51');
+    await telegram(ownerContext, 970000001, '198.51.100.52');
+    await telegram(opponentContext, 970000002, '198.51.100.53');
 
-    await adminPage.evaluate(async (accountId) => {
-      const response = await fetch('/api/admin/adjust', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operationId: crypto.randomUUID(),
-          target: accountId,
-          action: 'COINS',
-          reason: 'Update 2 RC E2E seed',
-          value: 1300,
-        }),
+    const adminPage = await adminContext.newPage();
+    const ownerPage = await ownerContext.newPage();
+    const opponentPage = await opponentContext.newPage();
+
+    try {
+      await Promise.all([adminPage.goto('/'), ownerPage.goto('/'), opponentPage.goto('/')]);
+      await expect(
+        ownerPage.locator('button.primary', { hasText: 'Find a player' }),
+      ).toBeVisible();
+
+      const owner = await ownerPage.evaluate(async () => {
+        const response = await fetch('/api/me');
+        if (!response.ok)
+          throw new Error(`Could not load owner /api/me: ${response.status}`);
+        return (await response.json()) as { id: string };
       });
-      if (!response.ok) throw new Error(`Could not seed Coins: ${response.status}`);
-    }, owner.id);
-    await ownerPage.reload();
-
-    const navigation = ownerPage.getByRole('navigation', { name: 'Primary' });
-    await navigation.getByRole('button', { name: /Store/ }).click();
-    await expect(ownerPage.getByRole('heading', { name: 'Store' })).toBeVisible();
-    await expectCompactLayout(ownerPage);
-
-    for (const product of products) {
-      const card = ownerPage.locator('.cosmetic-card', { hasText: product.name });
-      await expect(card).toBeVisible();
-      await card.getByRole('button', { name: 'Buy', exact: true }).click();
-      await expect(card.getByRole('button', { name: 'Owned', exact: true })).toBeDisabled();
-    }
-    await expect(ownerPage.locator('.commerce-title > strong')).toHaveText('50 Coins');
-    await expectCompactLayout(ownerPage);
-
-    await navigation.getByRole('button', { name: /Cosmetics/ }).click();
-    await expect(ownerPage.getByRole('heading', { name: 'Cosmetics' })).toBeVisible();
-    for (const product of products) {
-      const card = ownerPage.locator('.cosmetic-card', { hasText: product.name });
-      await expect(card).toBeVisible();
-      await card.getByRole('button', { name: 'Equip', exact: true }).click();
-      await expect(card.getByRole('button', { name: 'Equipped', exact: true })).toBeDisabled();
-    }
-    await expectCompactLayout(ownerPage);
-
-    await ownerPage.reload();
-    const persisted = await ownerPage.evaluate(async () => {
-      const response = await fetch('/api/me');
-      if (!response.ok) throw new Error(`Could not reload owner /api/me: ${response.status}`);
-      return (await response.json()) as { cosmetics: EquippedCosmeticsShape };
-    });
-    expect(persisted.cosmetics).toMatchObject({
-      profileFrame: 'bronze_profile_frame',
-      checkerSet: 'marble_checker_set',
-      diceSkin: 'obsidian_dice',
-      boardTheme: 'midnight_board',
-      reactionPack: 'neon_reactions',
-    });
-
-    const challenge = await ownerPage.evaluate(async () => {
-      const response = await fetch('/api/challenges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ruleset: 'BACKGAMMON' }),
+      const opponent = await opponentPage.evaluate(async () => {
+        const response = await fetch('/api/me');
+        if (!response.ok)
+          throw new Error(`Could not load opponent /api/me: ${response.status}`);
+        return (await response.json()) as { id: string };
       });
-      if (!response.ok) throw new Error(`Could not create challenge: ${response.status}`);
-      return (await response.json()) as { token: string };
-    });
-    const snapshot = await opponentPage.evaluate(async (token) => {
-      const response = await fetch(`/api/challenges/${token}/accept`, { method: 'POST' });
-      if (!response.ok) throw new Error(`Could not accept challenge: ${response.status}`);
-      return (await response.json()) as MatchSnapshotShape;
-    }, challenge.token);
 
-    const ownerMatchPlayer = Object.values(snapshot.players).find(
-      (player) => player.accountId === owner.id,
-    );
-    const opponentMatchPlayer = Object.values(snapshot.players).find(
-      (player) => player.accountId === opponent.id,
-    );
-    expect(ownerMatchPlayer?.cosmetics).toMatchObject(persisted.cosmetics);
-    expect(opponentMatchPlayer?.cosmetics?.profileFrame ?? 'default').toBe('default');
+      await adminPage.evaluate(async (accountId) => {
+        const response = await fetch('/api/admin/adjust', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operationId: crypto.randomUUID(),
+            target: accountId,
+            action: 'COINS',
+            reason: 'Update 2 RC E2E seed',
+            value: 1300,
+          }),
+        });
+        if (!response.ok) throw new Error(`Could not seed Coins: ${response.status}`);
+      }, owner.id);
+      await ownerPage.reload();
 
-    await Promise.all([enterActiveMatch(ownerPage), enterActiveMatch(opponentPage)]);
-    await expect
-      .poll(() => ownerPage.evaluate(() => document.body.scrollWidth <= window.innerWidth))
-      .toBe(true);
-    await expect(ownerPage.locator('.board-scene')).toHaveAttribute(
-      'data-local-board-theme',
-      'midnight_board',
-    );
-    await expect(ownerPage.locator('.player-strip.profile-frame-bronze')).toHaveCount(1);
-    await expect(ownerPage.locator('.checker.own.checker-set-marble').first()).toBeVisible();
+      const navigation = ownerPage.getByRole('navigation', { name: 'Primary' });
+      await navigation.getByRole('button', { name: /Store/ }).click();
+      await expect(ownerPage.getByRole('heading', { name: 'Store' })).toBeVisible();
+      await expectCompactLayout(ownerPage);
 
-    await ownerPage.getByRole('button', { name: 'Reactions' }).click();
-    const neonPicker = ownerPage.locator('.reaction-picker.reaction-pack-neon');
-    await expect(neonPicker).toBeVisible();
-    await neonPicker.getByRole('button', { name: 'HI!', exact: true }).click();
-    await expect(opponentPage.locator('.reaction.reaction-pack-neon')).toHaveText('HI!');
+      for (const product of products) {
+        const card = ownerPage.locator('.cosmetic-card', { hasText: product.name });
+        await expect(card).toBeVisible();
+        await card.getByRole('button', { name: 'Buy', exact: true }).click();
+        await expect(
+          card.getByRole('button', { name: 'Owned', exact: true }),
+        ).toBeDisabled();
+      }
+      await expect(ownerPage.locator('.commerce-title > strong')).toHaveText('50 Coins');
+      await expectCompactLayout(ownerPage);
 
-    await ownerPage.getByRole('button', { name: 'Match menu' }).click();
-    await ownerPage.getByRole('button', { name: 'Surrender', exact: true }).click();
-    await ownerPage
-      .getByRole('dialog', { name: 'Surrender' })
-      .getByRole('button', { name: 'Surrender' })
-      .click();
-    await expect(ownerPage.getByRole('heading', { name: 'You lost' })).toBeVisible({
-      timeout: 15000,
-    });
+      await navigation.getByRole('button', { name: /Cosmetics/ }).click();
+      await expect(ownerPage.getByRole('heading', { name: 'Cosmetics' })).toBeVisible();
+      for (const product of products) {
+        const card = ownerPage.locator('.cosmetic-card', { hasText: product.name });
+        await expect(card).toBeVisible();
+        await card.getByRole('button', { name: 'Equip', exact: true }).click();
+        await expect(
+          card.getByRole('button', { name: 'Equipped', exact: true }),
+        ).toBeDisabled();
+      }
+      await expectCompactLayout(ownerPage);
 
-    const historyContainsMatch = await ownerPage.evaluate(async (matchId) => {
-      const response = await fetch('/api/history');
-      if (!response.ok) throw new Error(`Could not load history: ${response.status}`);
-      const history = (await response.json()) as { id: string }[];
-      return history.some((entry) => entry.id === matchId);
-    }, snapshot.id);
-    expect(historyContainsMatch).toBe(true);
-  } finally {
-    await Promise.allSettled([adminContext.close(), ownerContext.close(), opponentContext.close()]);
-  }
-});
+      await ownerPage.reload();
+      const persisted = await ownerPage.evaluate(async () => {
+        const response = await fetch('/api/me');
+        if (!response.ok)
+          throw new Error(`Could not reload owner /api/me: ${response.status}`);
+        return (await response.json()) as { cosmetics: EquippedCosmeticsShape };
+      });
+      expect(persisted.cosmetics).toMatchObject({
+        profileFrame: 'bronze_profile_frame',
+        checkerSet: 'marble_checker_set',
+        diceSkin: 'obsidian_dice',
+        boardTheme: 'midnight_board',
+        reactionPack: 'neon_reactions',
+      });
+
+      const challenge = await ownerPage.evaluate(async () => {
+        const response = await fetch('/api/challenges', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ruleset: 'BACKGAMMON' }),
+        });
+        if (!response.ok)
+          throw new Error(`Could not create challenge: ${response.status}`);
+        return (await response.json()) as { token: string };
+      });
+      const snapshot = await opponentPage.evaluate(async (token) => {
+        const response = await fetch(`/api/challenges/${token}/accept`, { method: 'POST' });
+        if (!response.ok)
+          throw new Error(`Could not accept challenge: ${response.status}`);
+        return (await response.json()) as MatchSnapshotShape;
+      }, challenge.token);
+
+      const ownerMatchPlayer = Object.values(snapshot.players).find(
+        (player) => player.accountId === owner.id,
+      );
+      const opponentMatchPlayer = Object.values(snapshot.players).find(
+        (player) => player.accountId === opponent.id,
+      );
+      expect(ownerMatchPlayer?.cosmetics).toMatchObject(persisted.cosmetics);
+      expect(opponentMatchPlayer?.cosmetics?.profileFrame ?? 'default').toBe('default');
+
+      await Promise.all([enterActiveMatch(ownerPage), enterActiveMatch(opponentPage)]);
+      await expect
+        .poll(() => ownerPage.evaluate(() => document.body.scrollWidth <= window.innerWidth))
+        .toBe(true);
+      await expect(ownerPage.locator('.board-scene')).toHaveAttribute(
+        'data-local-board-theme',
+        'midnight_board',
+      );
+      await expect(ownerPage.locator('.player-strip.profile-frame-bronze')).toHaveCount(1);
+      await expect(ownerPage.locator('.checker.own.checker-set-marble').first()).toBeVisible();
+
+      await ownerPage.getByRole('button', { name: 'Reactions' }).click();
+      const neonPicker = ownerPage.locator('.reaction-picker.reaction-pack-neon');
+      await expect(neonPicker).toBeVisible();
+      await neonPicker.getByRole('button', { name: 'HI!', exact: true }).click();
+      await expect(opponentPage.locator('.reaction.reaction-pack-neon')).toHaveText('HI!');
+
+      await ownerPage.getByRole('button', { name: 'Match menu' }).click();
+      await ownerPage.getByRole('button', { name: 'Surrender', exact: true }).click();
+      await ownerPage
+        .getByRole('dialog', { name: 'Surrender' })
+        .getByRole('button', { name: 'Surrender' })
+        .click();
+      await expect(ownerPage.getByRole('heading', { name: 'You lost' })).toBeVisible({
+        timeout: 15000,
+      });
+
+      const historyContainsMatch = await ownerPage.evaluate(async (matchId) => {
+        const response = await fetch('/api/history');
+        if (!response.ok) throw new Error(`Could not load history: ${response.status}`);
+        const history = (await response.json()) as { id: string }[];
+        return history.some((entry) => entry.id === matchId);
+      }, snapshot.id);
+      expect(historyContainsMatch).toBe(true);
+    } finally {
+      await Promise.allSettled([
+        adminContext.close(),
+        ownerContext.close(),
+        opponentContext.close(),
+      ]);
+    }
+  },
+);
