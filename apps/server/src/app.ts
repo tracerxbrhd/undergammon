@@ -145,14 +145,25 @@ export async function buildServer(pool: pg.Pool, config: Config) {
       .parse(req.body);
     return equipCosmetic(pool, accountId, body.slot, body.cosmeticId);
   });
-  app.get('/api/store', async (req) => storeProducts(pool, await identity(req)));
+  app.get('/api/store', async (req) => {
+    const accountId = await identity(req);
+    const query = z.object({ slots: z.string().optional() }).strict().parse(req.query);
+    const slots =
+      query.slots === undefined
+        ? (['PROFILE_FRAME'] as const)
+        : z.array(cosmeticSlotSchema).min(1).parse(query.slots.split(','));
+    return storeProducts(pool, accountId, slots);
+  });
   app.post('/api/store/purchase', async (req) => {
     const accountId = await identity(req);
     const body = z
-      .object({ cosmeticId: z.string().min(1).max(80) })
+      .object({
+        slot: cosmeticSlotSchema.optional(),
+        cosmeticId: z.string().min(1).max(80),
+      })
       .strict()
       .parse(req.body);
-    return purchaseCosmetic(pool, accountId, body.cosmeticId);
+    return purchaseCosmetic(pool, accountId, body.cosmeticId, body.slot);
   });
   app.get('/api/daily-reward', async (req) => dailyRewardStatus(pool, await identity(req)));
   app.post('/api/daily-reward/claim', async (req) => {

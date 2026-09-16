@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react';
-import type { CosmeticsInventory, Profile, ProfileFrameId } from '@undergammon/protocol';
+import {
+  checkerSetIdSchema,
+  profileFrameIdSchema,
+  type CosmeticId,
+  type CosmeticSlot,
+  type CosmeticsInventory,
+  type Profile,
+} from '@undergammon/protocol';
 import { api, platform } from './platform';
 import type { Language } from './content';
-import { EmptyStateIcon, RetryIcon } from './ui/icons';
-import { ProfileFramePreview } from './ui/ProfileFramePreview';
+import { cosmeticDescription, cosmeticName, cosmeticSlotLabel } from './cosmetic-content';
+import { RetryIcon } from './ui/icons';
+import { CosmeticPreview } from './ui/CosmeticPreview';
 
-const names: Record<ProfileFrameId, readonly [string, string]> = {
-  default: ['Default', 'По умолчанию'],
-  season0_tester_frame: ['Season 0 Tester', 'Тестер Сезона 0'],
-  bronze_profile_frame: ['Bronze Frame', 'Бронзовая рамка'],
-};
+interface CosmeticItem {
+  readonly slot: CosmeticSlot;
+  readonly cosmeticId: CosmeticId;
+}
 
-function description(id: ProfileFrameId, language: Language): string {
-  if (id === 'season0_tester_frame') {
-    return language === 'ru' ? 'Награда участника Сезона 0.' : 'Season 0 participant reward.';
-  }
-  if (id === 'bronze_profile_frame') {
-    return language === 'ru' ? 'Постоянная рамка из Магазина.' : 'Permanent Store profile frame.';
-  }
-  return language === 'ru' ? 'Стандартный вид профиля.' : 'Standard profile appearance.';
+function itemKey(item: CosmeticItem): string {
+  return `${item.slot}:${item.cosmeticId}`;
 }
 
 export function Cosmetics({
@@ -49,22 +50,11 @@ export function Cosmetics({
     };
   }, [reloadKey]);
 
-  const ids: ProfileFrameId[] = inventory
-    ? [
-        'default',
-        ...inventory.owned
-          .map((item) => item.cosmeticId)
-          .filter((id): id is ProfileFrameId => id in names),
-      ]
-    : [];
-
-  const equip = async (cosmeticId: ProfileFrameId) => {
-    setPending(cosmeticId);
+  const equip = async (item: CosmeticItem) => {
+    const key = itemKey(item);
+    setPending(key);
     try {
-      const equipped = await api<Profile['cosmetics']>('/cosmetics/equipment', 'PUT', {
-        slot: 'PROFILE_FRAME',
-        cosmeticId,
-      });
+      const equipped = await api<Profile['cosmetics']>('/cosmetics/equipment', 'PUT', item);
       setInventory((current) => (current ? { ...current, equipped } : current));
       onEquipment(equipped);
       platform.haptic();
@@ -73,13 +63,84 @@ export function Cosmetics({
     }
   };
 
+  const ownedIds = (slot: CosmeticSlot): string[] =>
+    inventory?.owned.filter((item) => item.slot === slot).map((item) => item.cosmeticId) ?? [];
+
+  const frameItems: CosmeticItem[] = inventory
+    ? [
+        { slot: 'PROFILE_FRAME', cosmeticId: 'default' },
+        ...ownedIds('PROFILE_FRAME').flatMap((id) => {
+          const parsed = profileFrameIdSchema.safeParse(id);
+          return parsed.success && parsed.data !== 'default'
+            ? [{ slot: 'PROFILE_FRAME' as const, cosmeticId: parsed.data }]
+            : [];
+        }),
+      ]
+    : [];
+  const checkerItems: CosmeticItem[] = inventory
+    ? [
+        { slot: 'CHECKER_SET', cosmeticId: 'default' },
+        ...ownedIds('CHECKER_SET').flatMap((id) => {
+          const parsed = checkerSetIdSchema.safeParse(id);
+          return parsed.success && parsed.data !== 'default'
+            ? [{ slot: 'CHECKER_SET' as const, cosmeticId: parsed.data }]
+            : [];
+        }),
+      ]
+    : [];
+
+  const equippedId = (slot: CosmeticSlot): CosmeticId => {
+    if (!inventory) return 'default';
+    if (slot === 'PROFILE_FRAME') return inventory.equipped.profileFrame;
+    if (slot === 'CHECKER_SET') return inventory.equipped.checkerSet ?? 'default';
+    return inventory.equipped.diceSkin ?? 'default';
+  };
+
+  const renderSection = (slot: CosmeticSlot, items: readonly CosmeticItem[]) => (
+    <div className="cosmetic-section" key={slot}>
+      <h2 className="section-label">{cosmeticSlotLabel(slot, language)}</h2>
+      <div className="cosmetic-grid">
+        {items.map((item) => {
+          const key = itemKey(item);
+          const equipped = equippedId(slot) === item.cosmeticId;
+          return (
+            <article
+              className={`cosmetic-card polished-card owned ${equipped ? 'equipped' : ''}`}
+              key={key}
+            >
+              <CosmeticPreview slot={slot} cosmeticId={item.cosmeticId} />
+              <div className="cosmetic-card-copy">
+                <h3>{cosmeticName(slot, item.cosmeticId, language)}</h3>
+                <p>{cosmeticDescription(slot, item.cosmeticId, language)}</p>
+              </div>
+              {equipped ? (
+                <button className="cosmetic-state equipped" disabled>
+                  {language === 'ru' ? 'Выбрано' : 'Equipped'}
+                </button>
+              ) : (
+                <button disabled={pending !== null} onClick={() => void equip(item)}>
+                  {pending === key
+                    ? language === 'ru'
+                      ? 'Выбор…'
+                      : 'Equipping…'
+                    : language === 'ru'
+                      ? 'Выбрать'
+                      : 'Equip'}
+                </button>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <section aria-labelledby="cosmetics-title">
       <div className="page-title">
         <p className="eyebrow">SEASON 0</p>
         <h1 id="cosmetics-title">{language === 'ru' ? 'Экипировка' : 'Cosmetics'}</h1>
       </div>
-      <h2 className="section-label">{language === 'ru' ? 'Рамки профиля' : 'Profile Frames'}</h2>
 
       {loadError ? (
         <div className="commerce-state-card" role="alert">
@@ -99,44 +160,11 @@ export function Cosmetics({
           <CosmeticSkeleton />
           <CosmeticSkeleton />
         </div>
-      ) : ids.length === 0 ? (
-        <div className="commerce-state-card">
-          <EmptyStateIcon />
-          <h3>{language === 'ru' ? 'Коллекция пуста' : 'Collection is empty'}</h3>
-        </div>
       ) : (
-        <div className="cosmetic-grid">
-          {ids.map((id) => {
-            const equipped = inventory.equipped.profileFrame === id;
-            return (
-              <article
-                className={`cosmetic-card polished-card owned ${equipped ? 'equipped' : ''}`}
-                key={id}
-              >
-                <ProfileFramePreview cosmeticId={id} />
-                <div className="cosmetic-card-copy">
-                  <h3>{names[id]![language === 'ru' ? 1 : 0]}</h3>
-                  <p>{description(id, language)}</p>
-                </div>
-                {equipped ? (
-                  <button className="cosmetic-state equipped" disabled>
-                    {language === 'ru' ? 'Выбрано' : 'Equipped'}
-                  </button>
-                ) : (
-                  <button disabled={pending !== null} onClick={() => void equip(id)}>
-                    {pending === id
-                      ? language === 'ru'
-                        ? 'Выбор…'
-                        : 'Equipping…'
-                      : language === 'ru'
-                        ? 'Выбрать'
-                        : 'Equip'}
-                  </button>
-                )}
-              </article>
-            );
-          })}
-        </div>
+        <>
+          {renderSection('PROFILE_FRAME', frameItems)}
+          {renderSection('CHECKER_SET', checkerItems)}
+        </>
       )}
     </section>
   );

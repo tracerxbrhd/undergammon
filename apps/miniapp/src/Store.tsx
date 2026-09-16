@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
-import type { StoreProduct, StorePurchaseResult } from '@undergammon/protocol';
+import type { CosmeticSlot, StoreProduct, StorePurchaseResult } from '@undergammon/protocol';
 import { api, platform } from './platform';
 import type { Language } from './content';
+import { cosmeticDescription, cosmeticName, cosmeticSlotLabel } from './cosmetic-content';
 import { EmptyStateIcon, RetryIcon } from './ui/icons';
-import { ProfileFramePreview } from './ui/ProfileFramePreview';
+import { CosmeticPreview } from './ui/CosmeticPreview';
 
 interface Notice {
   readonly kind: 'success' | 'error';
   readonly text: string;
+}
+
+const storeSlots: readonly CosmeticSlot[] = ['PROFILE_FRAME', 'CHECKER_SET'];
+
+function productKey(product: Pick<StoreProduct, 'slot' | 'cosmeticId'>): string {
+  return `${product.slot}:${product.cosmeticId}`;
 }
 
 export function Store({
@@ -30,7 +37,7 @@ export function Store({
     let active = true;
     setLoading(true);
     setLoadError(false);
-    void api<StoreProduct[]>('/store')
+    void api<StoreProduct[]>(`/store?slots=${storeSlots.join(',')}`)
       .then((items) => {
         if (active) setProducts(items);
       })
@@ -45,14 +52,18 @@ export function Store({
     };
   }, [reloadKey]);
 
-  const buy = async (cosmeticId: string) => {
-    setPending(cosmeticId);
+  const buy = async (product: StoreProduct) => {
+    const key = productKey(product);
+    setPending(key);
     setNotice(null);
     try {
-      const result = await api<StorePurchaseResult>('/store/purchase', 'POST', { cosmeticId });
+      const result = await api<StorePurchaseResult>('/store/purchase', 'POST', {
+        slot: product.slot,
+        cosmeticId: product.cosmeticId,
+      });
       onBalance(result.balance);
       setProducts((current) =>
-        current.map((product) => (product.cosmeticId === cosmeticId ? result.product : product)),
+        current.map((item) => (productKey(item) === key ? result.product : item)),
       );
       platform.haptic();
       setNotice({
@@ -87,10 +98,10 @@ export function Store({
           {coins} {language === 'ru' ? 'Монет' : 'Coins'}
         </strong>
       </div>
-      <h2 className="section-label">{language === 'ru' ? 'Рамки профиля' : 'Profile Frames'}</h2>
 
       {loading ? (
         <div className="cosmetic-grid" aria-label={language === 'ru' ? 'Загрузка' : 'Loading'}>
+          <CosmeticSkeleton />
           <CosmeticSkeleton />
         </div>
       ) : loadError ? (
@@ -117,40 +128,50 @@ export function Store({
           </p>
         </div>
       ) : (
-        <div className="cosmetic-grid">
-          {products.map((product) => (
-            <article
-              className={`cosmetic-card polished-card ${product.owned ? 'owned' : ''}`}
-              key={product.cosmeticId}
-            >
-              <ProfileFramePreview cosmeticId={product.cosmeticId} />
-              <div className="cosmetic-card-copy">
-                <h3>{language === 'ru' ? 'Бронзовая рамка' : 'Bronze Frame'}</h3>
-                <small>
-                  {product.priceCoins} {language === 'ru' ? 'Монет' : 'Coins'}
-                </small>
-                <p>
-                  {language === 'ru' ? 'Постоянная рамка профиля.' : 'Permanent profile frame.'}
-                </p>
+        storeSlots.map((slot) => {
+          const items = products.filter((product) => product.slot === slot);
+          if (!items.length) return null;
+          return (
+            <div className="cosmetic-section" key={slot}>
+              <h2 className="section-label">{cosmeticSlotLabel(slot, language)}</h2>
+              <div className="cosmetic-grid">
+                {items.map((product) => {
+                  const key = productKey(product);
+                  return (
+                    <article
+                      className={`cosmetic-card polished-card ${product.owned ? 'owned' : ''}`}
+                      key={key}
+                    >
+                      <CosmeticPreview slot={product.slot} cosmeticId={product.cosmeticId} />
+                      <div className="cosmetic-card-copy">
+                        <h3>{cosmeticName(product.slot, product.cosmeticId, language)}</h3>
+                        <small>
+                          {product.priceCoins} {language === 'ru' ? 'Монет' : 'Coins'}
+                        </small>
+                        <p>{cosmeticDescription(product.slot, product.cosmeticId, language)}</p>
+                      </div>
+                      {product.owned ? (
+                        <button className="cosmetic-state owned" disabled>
+                          {language === 'ru' ? 'Куплено' : 'Owned'}
+                        </button>
+                      ) : (
+                        <button disabled={pending !== null} onClick={() => void buy(product)}>
+                          {pending === key
+                            ? language === 'ru'
+                              ? 'Покупка…'
+                              : 'Buying…'
+                            : language === 'ru'
+                              ? 'Купить'
+                              : 'Buy'}
+                        </button>
+                      )}
+                    </article>
+                  );
+                })}
               </div>
-              {product.owned ? (
-                <button className="cosmetic-state owned" disabled>
-                  {language === 'ru' ? 'Куплено' : 'Owned'}
-                </button>
-              ) : (
-                <button disabled={pending !== null} onClick={() => void buy(product.cosmeticId)}>
-                  {pending === product.cosmeticId
-                    ? language === 'ru'
-                      ? 'Покупка…'
-                      : 'Buying…'
-                    : language === 'ru'
-                      ? 'Купить'
-                      : 'Buy'}
-                </button>
-              )}
-            </article>
-          ))}
-        </div>
+            </div>
+          );
+        })
       )}
 
       {notice && (

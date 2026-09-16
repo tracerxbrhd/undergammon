@@ -1,6 +1,6 @@
 # Season 0 implementation status
 
-Snapshot: 2026-09-15. UNDERGAMMON is a deployed Telegram-first Season 0 Open Beta, not an undeployed prototype or local-only beta candidate. Production runs at `https://undergammon.tracerxbrhd.ru` with Telegram entry through `@UndergammonBot`.
+Snapshot: 2026-09-16. UNDERGAMMON is a deployed Telegram-first Season 0 Open Beta, not an undeployed prototype or local-only beta candidate. Production runs at `https://undergammon.tracerxbrhd.ru` with Telegram entry through `@UndergammonBot`.
 
 ## Implemented and production-verified
 
@@ -29,11 +29,19 @@ Update 1 is implemented and deployed. Its functional chain is:
 
 ## Implemented but requiring more tester feedback
 
+PR 2 is implemented in this change and covered by repository verification, but is not production-verified until it is merged and deployed. It adds:
+
+- Marble Checker Set as a second purchasable cosmetic type;
+- multi-slot cosmetic identity using `(slot, cosmeticId)` across Store ownership, purchase references and equipment;
+- independent Profile Frame / Checker Set equipment and `Default` fallback;
+- owner-aware match presentation of equipped Checker Sets, including different sets for both participants;
+- a reserved `DICE_SKIN` application slot with `Default` as its only current content.
+
 The core production path works, but broader feedback is still useful for:
 
 - Android/iOS Telegram WebView and compact-viewport coverage beyond the devices already used for acceptance;
 - Store/Cosmetics interaction polish and visual feedback;
-- Profile Frame presentation across the full set of profile/match surfaces and unusual viewport sizes;
+- Profile Frame and Checker Set presentation across unusual viewport sizes and real-device match sessions;
 - less frequently exercised admin, account-lifecycle and notification/recovery paths;
 - localization/editorial polish outside the main RU/EN player journey.
 
@@ -41,8 +49,8 @@ These are not claims that the underlying features are absent; they are areas whe
 
 ## Partial / known technical debt
 
-- Cosmetics are intentionally narrow at the current application/protocol/UI boundary: `PROFILE_FRAME` is the functional slot. Board Themes, Checker Sets, Dice Skins and richer cosmetic categories are not implemented content yet.
-- `resolveMatchCosmetics` / `ResolvedMatchCosmetics` and BoardScene owner-aware hooks exist, but Board Theme, Checker Set and Dice Skin resolution currently falls back to `Default`; Profile Frame is the implemented trusted cosmetic presentation.
+- Cosmetics remain intentionally narrow: `PROFILE_FRAME` and `CHECKER_SET` are functional slots. `DICE_SKIN` is reserved in the application contract but has only `Default`; Board Themes and Reaction Packs are not implemented content yet.
+- `resolveMatchCosmetics` / `ResolvedMatchCosmetics` and BoardScene owner-aware hooks resolve trusted Profile Frames and per-owner Checker Sets. Board Theme and Dice Skin presentation currently fall back to `Default`.
 - Primary navigation is correctly five-tab and configuration-driven, but the current glyphs are Unicode presentation shortcuts rather than the intended production icon set.
 - The backend is a single process and live socket routing is process-local. Do not run multiple server replicas with the current realtime architecture.
 - The transaction advisory-lock strategy deliberately prioritizes correctness over throughput; broad load/capacity testing has not been performed.
@@ -64,7 +72,7 @@ The following are accepted deferrals rather than current defects:
 - multi-instance realtime routing;
 - automated off-site backup work;
 - native App Store / Google Play standalone clients;
-- broad Board Theme / Checker Set / Dice Skin catalog expansion beyond the current Profile Frame vertical slice.
+- broad Board Theme / Dice Skin / Reaction Pack catalog expansion and a larger Checker Set catalog beyond the current focused vertical slice.
 
 ## Deployment / operational notes
 
@@ -91,6 +99,6 @@ The repository CI definition runs the same core build/lint/format/typecheck/test
 
 ## Current release position
 
-There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store, permanent Season 0 cosmetic ownership or the Update 1 cosmetic flow as future release blockers: those capabilities exist and have been exercised in production.
+There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2 adds the multi-slot Checker Set vertical slice pending deployment/real-device verification after merge.
 
 Season 0 remains an Open Beta. Production verification does not imply broad scale/load validation or completion of every deferred product specification.

@@ -22,6 +22,7 @@ import { Cosmetics } from './Cosmetics';
 import './styles/tokens.css';
 import './style.css';
 import './styles/polish.css';
+import './styles/checker-sets.css';
 
 interface Challenge {
   token: string;

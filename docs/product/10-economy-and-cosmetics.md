@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and first Profile Frame Store/equipment vertical slice are now implemented; broader cosmetic categories remain expansion scope.
+Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and the multi-slot Profile Frame / Checker Set Store/equipment vertical slice are now implemented; broader cosmetic categories remain expansion scope.
 
 ## Currency
 
@@ -27,15 +27,18 @@ The implemented Update 1 vertical slice is:
 
 Current content/contracts are intentionally narrow:
 
-- functional cosmetic slot: `PROFILE_FRAME`;
-- non-purchasable `Default` Profile Frame;
+- functional cosmetic slots: `PROFILE_FRAME` and `CHECKER_SET`;
+- `DICE_SKIN` is reserved in the application contract for the next cosmetic expansion but has only `Default` content;
+- non-purchasable `Default` Profile Frame and `Default` Checker Set;
 - Season 0 Tester Profile Frame, granted server-side for Season 0 participation;
 - Bronze Profile Frame, purchasable for 150 Coins;
+- Marble Checker Set, purchasable for 200 Coins;
 - Store purchase does not auto-equip;
 - equipment is validated against backend ownership and slot compatibility;
-- equipped Profile Frames are exposed through trusted profile/match contracts and rendered on identity surfaces.
+- Store ownership, purchase ledger references and equipment use `(slot, cosmeticId)` identity;
+- equipped Profile Frames and Checker Sets are exposed through trusted account/match contracts and resolved by owner identity.
 
-Board Themes, Checker Sets, Dice Skins, Reaction Packs and a large cosmetic catalog remain future expansion work even though the Board Scene already has presentation boundaries for those slots.
+Board Themes, non-default Dice Skins, Reaction Packs and a large cosmetic catalog remain future expansion work. The Board Scene already has presentation boundaries for these future slots without requiring gameplay or geometry changes.
 
 ## Future Telegram Monetization
 
@@ -110,7 +113,7 @@ Accepted cosmetic categories include:
 - Reaction Pack;
 - future visual effects where appropriate.
 
-Only Profile Frame is a functional ownership/equipment slot in the current Update 1 application contract/catalog.
+Profile Frame and Checker Set are functional ownership/equipment slots. Dice Skin is reserved in the current application contract with `Default` as its only accepted content until its dedicated expansion.
 
 Product rules:
 
@@ -130,7 +133,7 @@ Buying or receiving a cosmetic does not auto-equip it. The item is added to the 
 
 ## Hybrid Match Presentation
 
-A future expanded match presentation combines cosmetics from both participants instead of rendering a fully local-only skin. The existing resolver/BoardScene boundary already preserves owner identity, but non-Profile-Frame slots currently resolve to `Default`.
+Match presentation combines owner-scoped cosmetics from both participants instead of treating cosmetics as a fully local-only skin. Profile Frames and Checker Sets resolve from trusted equipment; Board Theme and Dice Skin presentation still use `Default` until their dedicated expansions.
 
 ### Board themes
 
@@ -163,7 +166,7 @@ Do not model a future Board Theme as one global `board-theme-*` class for the wh
 
 ### Profile cosmetics and reactions
 
-- Profile Frame belongs to its owner and is the currently implemented cosmetic presentation.
+- Profile Frame belongs to its owner identity surface, while Checker Set belongs to the owner's physical checkers in a match.
 - Future avatar/reaction cosmetics remain personalized to their owner and visible to the opponent only where the product contract permits.
 
 ## Cosmetic Loading
@@ -188,7 +191,7 @@ Exclusive cosmetics do not need to appear in the regular Store and may remain un
 
 ## Store
 
-The implemented Store is a simple persistent server-owned catalog. The current purchasable product is the Bronze Profile Frame for 150 Coins.
+The implemented Store is a simple persistent server-owned catalog. Current purchasable products are the Bronze Profile Frame for 150 Coins and Marble Checker Set for 200 Coins.
 
 Store principles remain:
 
@@ -201,7 +204,7 @@ Store principles remain:
 - purchased items are equipped separately from the player's Cosmetics collection;
 - exclusive seasonal/event cosmetics may show their acquisition source rather than a Coin price.
 
-As additional functional cosmetic slots are added, the catalog may be grouped into Boards, Checkers, Dice, Frames and Reactions. Those categories must not be documented as current completed Store content before they exist.
+The current Store groups implemented content into Profile Frames and Checker Sets. Boards, non-default Dice Skins and Reactions must not be documented as completed Store content before they exist.
 
 ## Balancing
 

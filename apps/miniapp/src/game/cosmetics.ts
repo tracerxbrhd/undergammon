@@ -1,5 +1,5 @@
 import type { PlayerId } from '@undergammon/game-engine';
-import type { EquippedCosmetics, ProfileFrameId } from '@undergammon/protocol';
+import type { CheckerSetId, EquippedCosmetics, ProfileFrameId } from '@undergammon/protocol';
 
 export type DefaultCosmeticId = 'default';
 
@@ -49,6 +49,14 @@ const defaultPresentations = {
   reactionPack: { id: 'default', className: 'reaction-pack-default' },
 } as const;
 
+const checkerSets: Record<CheckerSetId, CheckerSetPresentation> = {
+  default: defaultPresentations.checkerSet,
+  marble_checker_set: {
+    id: 'marble_checker_set',
+    className: 'checker-set-marble',
+  },
+};
+
 const profileFrames: Record<ProfileFrameId, ProfileFramePresentation> = {
   default: defaultPresentations.profileFrame,
   season0_tester_frame: {
@@ -60,6 +68,10 @@ const profileFrames: Record<ProfileFrameId, ProfileFramePresentation> = {
     className: 'profile-frame-bronze',
   },
 };
+
+export function resolveCheckerSet(id: CheckerSetId): CheckerSetPresentation {
+  return checkerSets[id];
+}
 
 export function resolveProfileFrame(id: ProfileFrameId): ProfileFramePresentation {
   return profileFrames[id];
@@ -73,16 +85,16 @@ function withOwner<T extends CosmeticPresentation>(
 }
 
 /**
- * Resolves trusted match presentation into the fixed cosmetic specifications that
- * rendering components may consume. Profile Frames use trusted snapshot data;
- * slots without a server contract deliberately remain Default.
+ * Resolves trusted match presentation into fixed application-controlled cosmetic
+ * specifications. Missing fields deliberately fall back to Default so legacy
+ * match snapshots remain renderable.
  */
 export function resolveMatchCosmetics({
   localSeat,
   players,
 }: {
   readonly localSeat: PlayerId;
-  readonly players?: Partial<Record<PlayerId, { cosmetics?: EquippedCosmetics }>>;
+  readonly players?: Partial<Record<PlayerId, { cosmetics?: Partial<EquippedCosmetics> }>>;
 }): ResolvedMatchCosmetics {
   const opponentSeat: PlayerId = localSeat === 'A' ? 'B' : 'A';
   return {
@@ -91,8 +103,14 @@ export function resolveMatchCosmetics({
       opponentTheme: withOwner(opponentSeat, defaultPresentations.boardTheme),
     },
     checkers: {
-      localSet: withOwner(localSeat, defaultPresentations.checkerSet),
-      opponentSet: withOwner(opponentSeat, defaultPresentations.checkerSet),
+      localSet: withOwner(
+        localSeat,
+        resolveCheckerSet(players?.[localSeat]?.cosmetics?.checkerSet ?? 'default'),
+      ),
+      opponentSet: withOwner(
+        opponentSeat,
+        resolveCheckerSet(players?.[opponentSeat]?.cosmetics?.checkerSet ?? 'default'),
+      ),
     },
     dice: {
       localSkin: withOwner(localSeat, defaultPresentations.diceSkin),
