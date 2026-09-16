@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { initialGame, type BoardState, type GameRuleset } from '@undergammon/game-engine';
-import { resolveBoardPointPresentation } from '../src/game/BoardScene';
+import {
+  resolveBoardPointPresentation,
+  resolveDicePresentationClasses,
+} from '../src/game/BoardScene';
+import { resolveMatchCosmetics } from '../src/game/cosmetics';
 
 describe.each(['LONG_NARDY', 'BACKGAMMON'] satisfies GameRuleset[])(
   '%s Board Scene presentation',
@@ -78,5 +82,21 @@ describe.each([
       amount: 4,
       physical: 2,
     });
+  });
+});
+
+describe('Board Scene Dice Skin presentation', () => {
+  const players = {
+    A: { cosmetics: { profileFrame: 'default' as const, diceSkin: 'obsidian_dice' as const } },
+    B: { cosmetics: { profileFrame: 'default' as const } },
+  };
+
+  it('applies local and opponent Dice Skin classes in fixed die order for both perspectives', () => {
+    expect(
+      resolveDicePresentationClasses(resolveMatchCosmetics({ localSeat: 'A', players })),
+    ).toEqual(['dice-skin-obsidian', 'dice-skin-default']);
+    expect(
+      resolveDicePresentationClasses(resolveMatchCosmetics({ localSeat: 'B', players })),
+    ).toEqual(['dice-skin-default', 'dice-skin-obsidian']);
   });
 });
