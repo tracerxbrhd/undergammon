@@ -10,7 +10,9 @@ describe('cosmetic catalog identity', () => {
     expect(cosmeticDefinition('PROFILE_FRAME', 'default')?.slot).toBe('PROFILE_FRAME');
     expect(cosmeticDefinition('CHECKER_SET', 'default')?.slot).toBe('CHECKER_SET');
     expect(cosmeticDefinition('DICE_SKIN', 'default')?.slot).toBe('DICE_SKIN');
+    expect(cosmeticDefinition('BOARD_THEME', 'default')?.slot).toBe('BOARD_THEME');
     expect(cosmeticKey('PROFILE_FRAME', 'default')).not.toBe(cosmeticKey('CHECKER_SET', 'default'));
+    expect(cosmeticKey('DICE_SKIN', 'default')).not.toBe(cosmeticKey('BOARD_THEME', 'default'));
   });
 
   it('requires the exact slot for purchasable checker content', () => {
@@ -29,5 +31,14 @@ describe('cosmetic catalog identity', () => {
       priceCoins: 250,
     });
     expect(purchasableCosmeticDefinition('CHECKER_SET', 'obsidian_dice')).toBeUndefined();
+  });
+
+  it('requires the exact slot for purchasable Board Theme content', () => {
+    expect(purchasableCosmeticDefinition('BOARD_THEME', 'midnight_board')).toMatchObject({
+      slot: 'BOARD_THEME',
+      id: 'midnight_board',
+      priceCoins: 300,
+    });
+    expect(purchasableCosmeticDefinition('DICE_SKIN', 'midnight_board')).toBeUndefined();
   });
 });
