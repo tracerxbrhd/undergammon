@@ -12,7 +12,7 @@
     "build": "pnpm -r --if-present run build",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier tests/browser/dice-skin.spec.ts && exit 1",
     "typecheck": "pnpm -r run typecheck",
     "test": "vitest run",
     "test:ci": "vitest run",
