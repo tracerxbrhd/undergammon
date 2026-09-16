@@ -1,9 +1,11 @@
 import {
+  boardThemeIdSchema,
   checkerSetIdSchema,
   diceSkinIdSchema,
   profileFrameIdSchema,
   type CosmeticSlot,
 } from '@undergammon/protocol';
+import { BoardThemePreview } from './BoardThemePreview';
 import { CheckerSetPreview } from './CheckerSetPreview';
 import { DiceSkinPreview } from './DiceSkinPreview';
 import { ProfileFramePreview } from './ProfileFramePreview';
@@ -23,6 +25,11 @@ export function CosmeticPreview({ slot, cosmeticId }: { slot: CosmeticSlot; cosm
     case 'DICE_SKIN': {
       const parsed = diceSkinIdSchema.safeParse(cosmeticId);
       if (parsed.success) return <DiceSkinPreview cosmeticId={parsed.data} />;
+      break;
+    }
+    case 'BOARD_THEME': {
+      const parsed = boardThemeIdSchema.safeParse(cosmeticId);
+      if (parsed.success) return <BoardThemePreview cosmeticId={parsed.data} />;
       break;
     }
     default: {
