@@ -1,6 +1,16 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
 import { createHmac } from 'node:crypto';
 
+interface MatchPlayerSnapshot {
+  accountId: string;
+  cosmetics?: { boardTheme?: string };
+}
+
+interface MatchSnapshotShape {
+  id: string;
+  players: Record<'A' | 'B', MatchPlayerSnapshot>;
+}
+
 async function telegram(context: BrowserContext, id: number, forwardedFor: string) {
   const params = new URLSearchParams({
     auth_date: String(Math.floor(Date.now() / 1000)),
@@ -120,13 +130,7 @@ test('Midnight Board persists and is captured in a new match snapshot', async ({
     const snapshot = await opponentPage.evaluate(async (token) => {
       const response = await fetch(`/api/challenges/${token}/accept`, { method: 'POST' });
       if (!response.ok) throw new Error(`Could not accept challenge: ${response.status}`);
-      return (await response.json()) as {
-        id: string;
-        players: Record<
-          'A' | 'B',
-          { accountId: string; cosmetics?: { boardTheme?: string; profileFrame: string } }
-        >;
-      };
+      return (await response.json()) as MatchSnapshotShape;
     }, challenge.token);
 
     const ownerMatchPlayer = Object.values(snapshot.players).find(
@@ -141,14 +145,12 @@ test('Midnight Board persists and is captured in a new match snapshot', async ({
     const reloadedSnapshot = await ownerPage.evaluate(async (matchId) => {
       const response = await fetch(`/api/matches/${matchId}`);
       if (!response.ok) throw new Error(`Could not reload match: ${response.status}`);
-      return (await response.json()) as {
-        players: Record<'A' | 'B', { accountId: string; cosmetics?: { boardTheme?: string } }>;
-      };
+      return (await response.json()) as MatchSnapshotShape;
     }, snapshot.id);
-    expect(
-      Object.values(reloadedSnapshot.players).find((player) => player.accountId === owner.id)?.cosmetics
-        ?.boardTheme,
-    ).toBe('midnight_board');
+    const reloadedOwner = Object.values(reloadedSnapshot.players).find(
+      (player) => player.accountId === owner.id,
+    );
+    expect(reloadedOwner?.cosmetics?.boardTheme).toBe('midnight_board');
   } finally {
     await Promise.allSettled([
       adminContext.close(),
