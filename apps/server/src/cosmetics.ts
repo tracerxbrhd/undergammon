@@ -7,27 +7,39 @@ import type {
   StoreProduct,
   StorePurchaseResult,
 } from '@undergammon/protocol';
-import { profileFrameIdSchema } from '@undergammon/protocol';
+import { checkerSetIdSchema, diceSkinIdSchema, profileFrameIdSchema } from '@undergammon/protocol';
 import { rows, transaction, type Db } from './db.js';
 import { applyCoins } from './economy.js';
-import { cosmeticDefinition, purchasableCosmetics } from './cosmetic-catalog.js';
+import {
+  cosmeticDefinition,
+  cosmeticDefinitions,
+  cosmeticKey,
+  legacyPurchasableCosmeticDefinition,
+  purchasableCosmeticDefinition,
+  purchasableCosmetics,
+} from './cosmetic-catalog.js';
 
-const SLOT = 'PROFILE_FRAME';
+const PROFILE_FRAME: CosmeticSlot = 'PROFILE_FRAME';
 const TESTER_FRAME = 'season0_tester_frame';
 
 export async function equippedCosmetics(
   db: Db | pg.Pool,
   accountId: string,
 ): Promise<EquippedCosmetics> {
-  const equipped = (
-    await rows<{ cosmetic_id: string }>(
-      db,
-      'SELECT cosmetic_id FROM cosmetic_equipment WHERE account_id=$1 AND slot=$2',
-      [accountId, SLOT],
-    )
-  )[0]?.cosmetic_id;
-  const parsed = profileFrameIdSchema.safeParse(equipped ?? 'default');
-  return { profileFrame: parsed.success ? parsed.data : ('default' satisfies ProfileFrameId) };
+  const equipped = await rows<{ slot: CosmeticSlot; cosmetic_id: string }>(
+    db,
+    'SELECT slot,cosmetic_id FROM cosmetic_equipment WHERE account_id=$1 AND slot=ANY($2::text[])',
+    [accountId, ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN']],
+  );
+  const bySlot = new Map(equipped.map((item) => [item.slot, item.cosmetic_id]));
+  const profileFrame = profileFrameIdSchema.safeParse(bySlot.get('PROFILE_FRAME') ?? 'default');
+  const checkerSet = checkerSetIdSchema.safeParse(bySlot.get('CHECKER_SET'));
+  const diceSkin = diceSkinIdSchema.safeParse(bySlot.get('DICE_SKIN'));
+  return {
+    profileFrame: profileFrame.success ? profileFrame.data : ('default' satisfies ProfileFrameId),
+    ...(checkerSet.success && checkerSet.data !== 'default' ? { checkerSet: checkerSet.data } : {}),
+    ...(diceSkin.success && diceSkin.data !== 'default' ? { diceSkin: diceSkin.data } : {}),
+  };
 }
 
 export async function cosmeticsInventory(
@@ -41,7 +53,7 @@ export async function cosmeticsInventory(
     source: string;
   }>(
     db,
-    'SELECT cosmetic_id,slot,acquired_at,source FROM cosmetic_ownership WHERE account_id=$1 ORDER BY acquired_at,cosmetic_id',
+    'SELECT cosmetic_id,slot,acquired_at,source FROM cosmetic_ownership WHERE account_id=$1 ORDER BY slot,acquired_at,cosmetic_id',
     [accountId],
   );
   return {
@@ -62,9 +74,12 @@ export async function equipCosmetic(
   cosmeticId: string,
 ): Promise<EquippedCosmetics> {
   return transaction(pool, async (db) => {
-    const definition = cosmeticDefinition(cosmeticId);
-    if (!definition) throw new Error('COSMETIC_NOT_FOUND');
-    if (definition.slot !== slot) throw new Error('COSMETIC_SLOT_MISMATCH');
+    const definition = cosmeticDefinition(slot, cosmeticId);
+    if (!definition) {
+      if (cosmeticDefinitions.some((item) => item.id === cosmeticId))
+        throw new Error('COSMETIC_SLOT_MISMATCH');
+      throw new Error('COSMETIC_NOT_FOUND');
+    }
     if (cosmeticId === 'default') {
       await db.query('DELETE FROM cosmetic_equipment WHERE account_id=$1 AND slot=$2', [
         accountId,
@@ -89,18 +104,18 @@ export async function equipCosmetic(
 export async function storeProducts(db: Db | pg.Pool, accountId: string): Promise<StoreProduct[]> {
   const owned = new Set(
     (
-      await rows<{ cosmetic_id: string }>(
+      await rows<{ cosmetic_id: string; slot: CosmeticSlot }>(
         db,
-        'SELECT cosmetic_id FROM cosmetic_ownership WHERE account_id=$1',
+        'SELECT cosmetic_id,slot FROM cosmetic_ownership WHERE account_id=$1',
         [accountId],
       )
-    ).map((item) => item.cosmetic_id),
+    ).map((item) => cosmeticKey(item.slot, item.cosmetic_id)),
   );
   return purchasableCosmetics.map((item) => ({
     cosmeticId: item.id,
     slot: item.slot,
     priceCoins: item.priceCoins,
-    owned: owned.has(item.id),
+    owned: owned.has(cosmeticKey(item.slot, item.id)),
   }));
 }
 
@@ -108,8 +123,11 @@ export async function purchaseCosmetic(
   pool: pg.Pool,
   accountId: string,
   cosmeticId: string,
+  slot?: CosmeticSlot,
 ): Promise<StorePurchaseResult> {
-  const product = purchasableCosmetics.find((item) => item.id === cosmeticId);
+  const product = slot
+    ? purchasableCosmeticDefinition(slot, cosmeticId)
+    : legacyPurchasableCosmeticDefinition(cosmeticId);
   if (!product) throw new Error('COSMETIC_NOT_PURCHASABLE');
   return transaction(pool, async (db) => {
     const owned = await rows(
@@ -118,17 +136,18 @@ export async function purchaseCosmetic(
       [accountId, product.slot, product.id],
     );
     if (owned.length) throw new Error('COSMETIC_ALREADY_OWNED');
+    const reference = cosmeticKey(product.slot, product.id);
     const balance = await applyCoins(
       db,
       accountId,
       -product.priceCoins,
       'COSMETIC_PURCHASE',
-      product.id,
+      reference,
     );
     if (balance === null) throw new Error('COSMETIC_ALREADY_OWNED');
     await db.query(
-      "INSERT INTO cosmetic_ownership(account_id,slot,cosmetic_id,source,source_reference) VALUES($1,$2,$3,'COSMETIC_PURCHASE',$3)",
-      [accountId, product.slot, product.id],
+      "INSERT INTO cosmetic_ownership(account_id,slot,cosmetic_id,source,source_reference) VALUES($1,$2,$3,'COSMETIC_PURCHASE',$4)",
+      [accountId, product.slot, product.id, reference],
     );
     return {
       balance,
@@ -148,12 +167,12 @@ export async function grantSeason0TesterFrame(db: Db, accountId: string, matchId
   const granted = await rows<{ cosmetic_id: string }>(
     db,
     "INSERT INTO cosmetic_ownership(account_id,slot,cosmetic_id,source,source_reference) VALUES($1,$2,$3,'SEASON_0_PARTICIPATION',$4) ON CONFLICT DO NOTHING RETURNING cosmetic_id",
-    [accountId, SLOT, TESTER_FRAME, matchId],
+    [accountId, PROFILE_FRAME, TESTER_FRAME, matchId],
   );
   if (!granted.length) return false;
   await db.query(
     'INSERT INTO cosmetic_equipment(account_id,slot,cosmetic_id) VALUES($1,$2,$3) ON CONFLICT(account_id,slot) DO NOTHING',
-    [accountId, SLOT, TESTER_FRAME],
+    [accountId, PROFILE_FRAME, TESTER_FRAME],
   );
   return true;
 }

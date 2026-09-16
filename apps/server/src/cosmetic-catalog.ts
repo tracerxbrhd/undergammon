@@ -1,11 +1,13 @@
-import type { CosmeticSlot, ProfileFrameId } from '@undergammon/protocol';
+import type { CosmeticId, CosmeticSlot } from '@undergammon/protocol';
 
 export interface CosmeticDefinition {
-  readonly id: ProfileFrameId;
+  readonly id: CosmeticId;
   readonly slot: CosmeticSlot;
   readonly priceCoins?: number;
   readonly purchasable: boolean;
 }
+
+export type PurchasableCosmeticDefinition = CosmeticDefinition & { readonly priceCoins: number };
 
 export const cosmeticDefinitions: readonly CosmeticDefinition[] = [
   { id: 'default', slot: 'PROFILE_FRAME', purchasable: false },
@@ -16,13 +18,37 @@ export const cosmeticDefinitions: readonly CosmeticDefinition[] = [
     priceCoins: 150,
     purchasable: true,
   },
+  { id: 'default', slot: 'CHECKER_SET', purchasable: false },
+  {
+    id: 'marble_checker_set',
+    slot: 'CHECKER_SET',
+    priceCoins: 200,
+    purchasable: true,
+  },
+  { id: 'default', slot: 'DICE_SKIN', purchasable: false },
 ];
 
-export const purchasableCosmetics = cosmeticDefinitions.filter(
-  (item): item is CosmeticDefinition & { priceCoins: number } =>
-    item.purchasable && item.priceCoins !== undefined,
-);
+export const purchasableCosmetics: readonly PurchasableCosmeticDefinition[] =
+  cosmeticDefinitions.filter(
+    (item): item is PurchasableCosmeticDefinition =>
+      item.purchasable && item.priceCoins !== undefined,
+  );
 
-export function cosmeticDefinition(id: string) {
-  return cosmeticDefinitions.find((item) => item.id === id);
+export function cosmeticKey(slot: CosmeticSlot, cosmeticId: string): string {
+  return `${slot}:${cosmeticId}`;
+}
+
+export function cosmeticDefinition(slot: CosmeticSlot, cosmeticId: string) {
+  return cosmeticDefinitions.find((item) => item.slot === slot && item.id === cosmeticId);
+}
+
+export function purchasableCosmeticDefinition(slot: CosmeticSlot, cosmeticId: string) {
+  return purchasableCosmetics.find((item) => item.slot === slot && item.id === cosmeticId);
+}
+
+/** Compatibility path for a cached pre-PR2 client that did not send a slot. */
+export function legacyPurchasableCosmeticDefinition(cosmeticId: string) {
+  const matches = purchasableCosmetics.filter((item) => item.id === cosmeticId);
+  if (matches.length > 1) throw new Error('COSMETIC_SLOT_REQUIRED');
+  return matches[0];
 }

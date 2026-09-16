@@ -149,10 +149,13 @@ export async function buildServer(pool: pg.Pool, config: Config) {
   app.post('/api/store/purchase', async (req) => {
     const accountId = await identity(req);
     const body = z
-      .object({ cosmeticId: z.string().min(1).max(80) })
+      .object({
+        slot: cosmeticSlotSchema.optional(),
+        cosmeticId: z.string().min(1).max(80),
+      })
       .strict()
       .parse(req.body);
-    return purchaseCosmetic(pool, accountId, body.cosmeticId);
+    return purchaseCosmetic(pool, accountId, body.cosmeticId, body.slot);
   });
   app.get('/api/daily-reward', async (req) => dailyRewardStatus(pool, await identity(req)));
   app.post('/api/daily-reward/claim', async (req) => {

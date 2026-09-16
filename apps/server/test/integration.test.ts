@@ -218,6 +218,12 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
         priceCoins: 150,
         owned: false,
       },
+      {
+        cosmeticId: 'marble_checker_set',
+        slot: 'CHECKER_SET',
+        priceCoins: 200,
+        owned: false,
+      },
     ]);
 
     const purchased = await purchaseCosmetic(pool, user(0), 'bronze_profile_frame');
@@ -242,6 +248,49 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
     expect((await equipCosmetic(pool, user(0), 'PROFILE_FRAME', 'default')).profileFrame).toBe(
       'default',
     );
+  });
+  it('purchases and equips Checker Sets independently and snapshots trusted equipment', async () => {
+    await transaction(pool, (db) =>
+      service.coins(db, user(0), 250, 'ADMIN_ADJUSTMENT', 'checker-seed'),
+    );
+    const purchased = await purchaseCosmetic(pool, user(0), 'marble_checker_set', 'CHECKER_SET');
+    expect(purchased.balance).toBe(50);
+    expect((await cosmeticsInventory(pool, user(0))).equipped.checkerSet).toBeUndefined();
+
+    const equipped = await equipCosmetic(pool, user(0), 'CHECKER_SET', 'marble_checker_set');
+    expect(equipped.profileFrame).toBe('default');
+    expect(equipped.checkerSet).toBe('marble_checker_set');
+
+    const snapshot = await transaction(pool, (db) =>
+      service.create(db, user(0), user(1), 'LONG_NARDY', 'CASUAL'),
+    );
+    expect(snapshot.players.A.cosmetics?.checkerSet).toBe('marble_checker_set');
+    expect(snapshot.players.B.cosmetics?.checkerSet).toBeUndefined();
+
+    const ledger = await rows<{ reference: string }>(
+      pool,
+      "SELECT reference FROM coin_ledger WHERE account_id=$1 AND source='COSMETIC_PURCHASE'",
+      [user(0)],
+    );
+    expect(ledger).toEqual([{ reference: 'CHECKER_SET:marble_checker_set' }]);
+    expect(
+      (await equipCosmetic(pool, user(0), 'CHECKER_SET', 'default')).checkerSet,
+    ).toBeUndefined();
+  });
+  it('allows the same cosmetic id to exist in different ownership slots', async () => {
+    await pool.query(
+      "INSERT INTO cosmetic_ownership(account_id,slot,cosmetic_id,source,source_reference) VALUES($1,'PROFILE_FRAME','shared_test_cosmetic','TEST','frame'),($1,'CHECKER_SET','shared_test_cosmetic','TEST','checker')",
+      [user(0)],
+    );
+    const owned = await rows<{ slot: string; cosmetic_id: string }>(
+      pool,
+      'SELECT slot,cosmetic_id FROM cosmetic_ownership WHERE account_id=$1 ORDER BY slot',
+      [user(0)],
+    );
+    expect(owned).toEqual([
+      { slot: 'CHECKER_SET', cosmetic_id: 'shared_test_cosmetic' },
+      { slot: 'PROFILE_FRAME', cosmetic_id: 'shared_test_cosmetic' },
+    ]);
   });
   it('serializes concurrent purchases and rolls back insufficient purchases', async () => {
     await transaction(pool, (db) => service.coins(db, user(0), 200, 'ADMIN_ADJUSTMENT', 'seed'));

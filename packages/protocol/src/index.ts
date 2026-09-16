@@ -23,7 +23,7 @@ export const commandSchema = z
 export type Command = z.infer<typeof commandSchema>;
 export type Ruleset = z.infer<typeof rulesetSchema>;
 export type Mode = z.infer<typeof modeSchema>;
-export const cosmeticSlotSchema = z.enum(['PROFILE_FRAME']);
+export const cosmeticSlotSchema = z.enum(['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN']);
 export type CosmeticSlot = z.infer<typeof cosmeticSlotSchema>;
 export const profileFrameIdSchema = z.enum([
   'default',
@@ -31,8 +31,17 @@ export const profileFrameIdSchema = z.enum([
   'bronze_profile_frame',
 ]);
 export type ProfileFrameId = z.infer<typeof profileFrameIdSchema>;
+export const checkerSetIdSchema = z.enum(['default', 'marble_checker_set']);
+export type CheckerSetId = z.infer<typeof checkerSetIdSchema>;
+export const diceSkinIdSchema = z.enum(['default']);
+export type DiceSkinId = z.infer<typeof diceSkinIdSchema>;
+export type CosmeticId = ProfileFrameId | CheckerSetId | DiceSkinId;
 export interface EquippedCosmetics {
   profileFrame: ProfileFrameId;
+  /** Missing means Default, including snapshots written before Checker Sets existed. */
+  checkerSet?: CheckerSetId;
+  /** Missing means Default until Dice Skin content is introduced. */
+  diceSkin?: DiceSkinId;
 }
 export interface OwnedCosmetic {
   cosmeticId: string;
@@ -45,7 +54,7 @@ export interface CosmeticsInventory {
   equipped: EquippedCosmetics;
 }
 export interface StoreProduct {
-  cosmeticId: ProfileFrameId;
+  cosmeticId: CosmeticId;
   slot: CosmeticSlot;
   priceCoins: number;
   owned: boolean;
