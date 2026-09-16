@@ -50,6 +50,15 @@ export function resolveBoardPointPresentation(
   });
 }
 
+export function resolveDicePresentationClasses(
+  cosmetics: ResolvedMatchCosmetics,
+): readonly [string, string] {
+  return [
+    cosmetics.dice.localSkin.presentation.className,
+    cosmetics.dice.opponentSkin.presentation.className,
+  ];
+}
+
 export function BoardScene({
   game,
   board,
@@ -81,6 +90,7 @@ export function BoardScene({
 }) {
   const opponent: PlayerId = seat === 'A' ? 'B' : 'A';
   const points = resolveBoardPointPresentation(game, board, seat);
+  const diceClasses = resolveDicePresentationClasses(cosmetics);
   return (
     <div
       className="board-scene"
@@ -144,11 +154,7 @@ export function BoardScene({
               key={index}
               value={die}
               used={draft.some((move) => move.die === die)}
-              className={
-                index === 0
-                  ? cosmetics.dice.localSkin.presentation.className
-                  : cosmetics.dice.opponentSkin.presentation.className
-              }
+              className={index === 0 ? diceClasses[0] : diceClasses[1]}
             />
           ))}
           {game.diceRoll?.[0] === game.diceRoll?.[1] && (
