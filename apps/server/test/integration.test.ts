@@ -225,6 +225,14 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
         owned: false,
       },
     ]);
+    expect(await storeProducts(pool, user(0), ['PROFILE_FRAME'])).toEqual([
+      {
+        cosmeticId: 'bronze_profile_frame',
+        slot: 'PROFILE_FRAME',
+        priceCoins: 150,
+        owned: false,
+      },
+    ]);
 
     const purchased = await purchaseCosmetic(pool, user(0), 'bronze_profile_frame');
     expect(purchased.balance).toBe(50);

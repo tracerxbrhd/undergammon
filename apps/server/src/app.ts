@@ -145,7 +145,15 @@ export async function buildServer(pool: pg.Pool, config: Config) {
       .parse(req.body);
     return equipCosmetic(pool, accountId, body.slot, body.cosmeticId);
   });
-  app.get('/api/store', async (req) => storeProducts(pool, await identity(req)));
+  app.get('/api/store', async (req) => {
+    const accountId = await identity(req);
+    const query = z.object({ slots: z.string().optional() }).strict().parse(req.query);
+    const slots =
+      query.slots === undefined
+        ? (['PROFILE_FRAME'] as const)
+        : z.array(cosmeticSlotSchema).min(1).parse(query.slots.split(','));
+    return storeProducts(pool, accountId, slots);
+  });
   app.post('/api/store/purchase', async (req) => {
     const accountId = await identity(req);
     const body = z

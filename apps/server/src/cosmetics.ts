@@ -99,7 +99,11 @@ export async function equipCosmetic(
   });
 }
 
-export async function storeProducts(db: Db | pg.Pool, accountId: string): Promise<StoreProduct[]> {
+export async function storeProducts(
+  db: Db | pg.Pool,
+  accountId: string,
+  slots: readonly CosmeticSlot[] = ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN'],
+): Promise<StoreProduct[]> {
   const owned = new Set(
     (
       await rows<{ cosmetic_id: string; slot: CosmeticSlot }>(
@@ -109,12 +113,14 @@ export async function storeProducts(db: Db | pg.Pool, accountId: string): Promis
       )
     ).map((item) => cosmeticKey(item.slot, item.cosmetic_id)),
   );
-  return purchasableCosmetics.map((item) => ({
-    cosmeticId: item.id,
-    slot: item.slot,
-    priceCoins: item.priceCoins,
-    owned: owned.has(cosmeticKey(item.slot, item.id)),
-  }));
+  return purchasableCosmetics
+    .filter((item) => slots.includes(item.slot))
+    .map((item) => ({
+      cosmeticId: item.id,
+      slot: item.slot,
+      priceCoins: item.priceCoins,
+      owned: owned.has(cosmeticKey(item.slot, item.id)),
+    }));
 }
 
 export async function purchaseCosmetic(

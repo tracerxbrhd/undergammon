@@ -37,7 +37,7 @@ export function Store({
     let active = true;
     setLoading(true);
     setLoadError(false);
-    void api<StoreProduct[]>('/store')
+    void api<StoreProduct[]>(`/store?slots=${storeSlots.join(',')}`)
       .then((items) => {
         if (active) setProducts(items);
       })
