@@ -35,19 +35,18 @@ PR 3 is merged into `main` and adds the first Dice Skin vertical slice: Obsidian
 
 PR 4 is merged into `main` and adds the first Board Theme vertical slice: Midnight Board, independent Board Theme equipment, trusted match-snapshot capture and hybrid owner-aware board presentation. Its post-merge production/device verification remains separate from the repository-level implementation claim.
 
-PR 5 is implemented in this change and adds:
+PR 5 is merged into `main` and adds the first Reaction Pack vertical slice: Neon Reactions, independent Reaction Pack equipment, trusted match-snapshot capture and sender-owned realtime reaction presentation. Realtime semantics remain strictly `WAVE`, `NICE` and `GG`; packs only map those trusted semantics to application-owned presentation. Its post-merge production/device verification remains separate from the repository-level implementation claim.
 
-- Neon Reactions as the first purchasable Reaction Pack, priced at 350 Coins;
-- `REACTION_PACK` as a functional Store, ownership and equipment slot alongside Profile Frames, Checker Sets, Dice Skins and Board Themes;
-- independent Reaction Pack equipment with `Default` fallback and no purchase auto-equip;
-- trusted equipped Reaction Packs captured in newly created match snapshots;
-- owner-aware local/opponent Reaction Pack resolution so presentation remains attached to the authoritative sender identity;
-- the existing semantic realtime reactions remain strictly `WAVE`, `NICE` and `GG` while each trusted pack maps those semantics to application-owned visual presentation;
-- incoming reactions render through the sender's equipped pack, while the local picker renders through the local player's pack;
-- application-controlled text/CSS presentation with no remote URLs, arbitrary HTML, runtime CSS or user-supplied executable assets;
-- reaction timeout handling that replaces the previous reaction timer when a newer reaction arrives.
+PR 6 starts the production-hardening stage with controlling-session and reconnect recovery work:
 
-PR 5 does not change game-engine rules, dice generation, move legality, match results or authoritative game state. It is not production-verified until it is merged, deployed and exercised on real Telegram clients.
+- the Mini App transport tracks session control as `requesting`, `owned` or `lost` instead of optimistically treating a local button press as ownership;
+- **Continue on this device** only restores gameplay after the server acknowledges the exact `OPEN` command;
+- takeover intent survives a transient socket interruption and retries after reconnect;
+- an offline client cannot hide `CONTROL_LOST` by pressing the takeover action when no command was sent;
+- server-authoritative control ownership and match rules remain unchanged;
+- deterministic transport coverage exercises acknowledgement, offline requests and reconnect retry semantics, while a multi-session browser scenario verifies real authoritative control transfer between two sessions of one Game Account.
+
+PR 6 is not production-verified until it is merged, deployed and exercised on real Telegram clients.
 
 The core production path works, but broader feedback is still useful for:
 
@@ -61,14 +60,14 @@ These are not claims that the underlying features are absent; they are areas whe
 
 ## Partial / known technical debt
 
-- Cosmetics remain intentionally narrow: `PROFILE_FRAME`, `CHECKER_SET`, `DICE_SKIN`, `BOARD_THEME` and `REACTION_PACK` are functional slots with one focused non-default Store item each where applicable. Broad catalogs are intentionally deferred.
+- Cosmetics remain intentionally narrow: `PROFILE_FRAME`, `CHECKER_SET`, `DICE_SKIN`, `BOARD_THEME` and `REACTION_PACK` are functional slots with focused non-default Store items. Broad catalogs are intentionally deferred.
 - `resolveMatchCosmetics` / `ResolvedMatchCosmetics` resolves trusted owner-aware Profile Frames, Checker Sets, Dice Skins, Board Themes and Reaction Packs. The catalog remains deliberately small rather than generalized into remote/custom skin content.
 - Board Theme composition deliberately themes owner regions while keeping the shared center deterministic and neutral; broader theme catalogs and richer visual assets are deferred until the first hybrid slice has real-device feedback.
-- Primary navigation is correctly five-tab and configuration-driven, but the current glyphs are Unicode presentation shortcuts rather than the intended production icon set.
 - The backend is a single process and live socket routing is process-local. Do not run multiple server replicas with the current realtime architecture.
 - The transaction advisory-lock strategy deliberately prioritizes correctness over throughput; broad load/capacity testing has not been performed.
 - Some secondary/admin strings and uncommon internal errors still need editorial localization polish.
 - Automated off-site PostgreSQL backup is not configured; the documented operational baseline is manual `pg_dump` plus copying backups off the VPS.
+- Fastify still emits the `FSTDEP023` deprecation warning for the current request-logging configuration; this is maintenance debt rather than a Season 0 gameplay blocker.
 
 ## Intentionally deferred
 
@@ -114,10 +113,12 @@ PR 3 added focused catalog/resolver/integration coverage plus an end-to-end Obsi
 
 PR 4 added focused protocol/catalog/resolver coverage, BoardScene perspective tests for hybrid theme-region ownership in both supported rulesets, and an end-to-end Midnight Board purchase -> equip -> reload -> new-match-snapshot scenario.
 
-PR 5 adds focused protocol/catalog/resolver coverage and an end-to-end Neon Reactions purchase -> equip -> reload -> new-match-snapshot -> realtime sender-owned presentation scenario. Its verification result should be taken from the PR CI run rather than inferred from this document.
+PR 5 added focused protocol/catalog/resolver coverage and an end-to-end Neon Reactions purchase -> equip -> reload -> new-match-snapshot -> realtime sender-owned presentation scenario.
+
+PR 6 adds transport-level tests for acknowledged controlling-session ownership, offline requests and reconnect retry, plus a browser scenario with two sessions for one Game Account that verifies explicit authoritative control transfer. Its final verification result should be taken from the PR CI run rather than inferred from this document.
 
 ## Current release position
 
-There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2, PR 3 and PR 4 are merged; PR 5 adds the focused Reaction Pack vertical slice pending review, merge, deployment and real-device verification.
+There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2, PR 3, PR 4 and PR 5 are merged. PR 6 is the first focused production-hardening slice after the cosmetics architecture was completed.
 
 Season 0 remains an Open Beta. Production verification does not imply broad scale/load validation or completion of every deferred product specification.
