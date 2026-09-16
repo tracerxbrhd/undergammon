@@ -1,5 +1,10 @@
 import type { PlayerId } from '@undergammon/game-engine';
-import type { CheckerSetId, EquippedCosmetics, ProfileFrameId } from '@undergammon/protocol';
+import type {
+  CheckerSetId,
+  DiceSkinId,
+  EquippedCosmetics,
+  ProfileFrameId,
+} from '@undergammon/protocol';
 
 export type DefaultCosmeticId = 'default';
 
@@ -57,6 +62,14 @@ const checkerSets: Record<CheckerSetId, CheckerSetPresentation> = {
   },
 };
 
+const diceSkins: Record<DiceSkinId, DiceSkinPresentation> = {
+  default: defaultPresentations.diceSkin,
+  obsidian_dice: {
+    id: 'obsidian_dice',
+    className: 'dice-skin-obsidian',
+  },
+};
+
 const profileFrames: Record<ProfileFrameId, ProfileFramePresentation> = {
   default: defaultPresentations.profileFrame,
   season0_tester_frame: {
@@ -71,6 +84,10 @@ const profileFrames: Record<ProfileFrameId, ProfileFramePresentation> = {
 
 export function resolveCheckerSet(id: CheckerSetId): CheckerSetPresentation {
   return checkerSets[id];
+}
+
+export function resolveDiceSkin(id: DiceSkinId): DiceSkinPresentation {
+  return diceSkins[id];
 }
 
 export function resolveProfileFrame(id: ProfileFrameId): ProfileFramePresentation {
@@ -113,8 +130,14 @@ export function resolveMatchCosmetics({
       ),
     },
     dice: {
-      localSkin: withOwner(localSeat, defaultPresentations.diceSkin),
-      opponentSkin: withOwner(opponentSeat, defaultPresentations.diceSkin),
+      localSkin: withOwner(
+        localSeat,
+        resolveDiceSkin(players?.[localSeat]?.cosmetics?.diceSkin ?? 'default'),
+      ),
+      opponentSkin: withOwner(
+        opponentSeat,
+        resolveDiceSkin(players?.[opponentSeat]?.cosmetics?.diceSkin ?? 'default'),
+      ),
     },
     profile: {
       localFrame: withOwner(

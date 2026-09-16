@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and the multi-slot Profile Frame / Checker Set Store/equipment vertical slice are now implemented; broader cosmetic categories remain expansion scope.
+Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and the multi-slot Profile Frame / Checker Set / Dice Skin Store and equipment vertical slices are implemented; broader cosmetic categories remain expansion scope.
 
 ## Currency
 
@@ -21,24 +21,24 @@ Accepted product decisions from interview question 10. The Season 0 soft-currenc
 
 ## Current Season 0 implementation
 
-The implemented Update 1 vertical slice is:
+The implemented economy/cosmetics chain is:
 
 `Daily Reward / ranked Coins -> Store -> permanent ownership -> equipment -> presentation`
 
 Current content/contracts are intentionally narrow:
 
-- functional cosmetic slots: `PROFILE_FRAME` and `CHECKER_SET`;
-- `DICE_SKIN` is reserved in the application contract for the next cosmetic expansion but has only `Default` content;
-- non-purchasable `Default` Profile Frame and `Default` Checker Set;
+- functional cosmetic slots: `PROFILE_FRAME`, `CHECKER_SET` and `DICE_SKIN`;
+- non-purchasable `Default` Profile Frame, `Default` Checker Set and `Default` Dice Skin;
 - Season 0 Tester Profile Frame, granted server-side for Season 0 participation;
 - Bronze Profile Frame, purchasable for 150 Coins;
 - Marble Checker Set, purchasable for 200 Coins;
+- Obsidian Dice, purchasable for 250 Coins;
 - Store purchase does not auto-equip;
 - equipment is validated against backend ownership and slot compatibility;
 - Store ownership, purchase ledger references and equipment use `(slot, cosmeticId)` identity;
-- equipped Profile Frames and Checker Sets are exposed through trusted account/match contracts and resolved by owner identity.
+- equipped Profile Frames, Checker Sets and Dice Skins are exposed through trusted account/match contracts and resolved by owner identity.
 
-Board Themes, non-default Dice Skins, Reaction Packs and a large cosmetic catalog remain future expansion work. The Board Scene already has presentation boundaries for these future slots without requiring gameplay or geometry changes.
+Board Themes, Reaction Packs and a large cosmetic catalog remain future expansion work. The Board Scene already has presentation boundaries for these future slots without requiring gameplay or geometry changes.
 
 ## Future Telegram Monetization
 
@@ -113,7 +113,7 @@ Accepted cosmetic categories include:
 - Reaction Pack;
 - future visual effects where appropriate.
 
-Profile Frame and Checker Set are functional ownership/equipment slots. Dice Skin is reserved in the current application contract with `Default` as its only accepted content until its dedicated expansion.
+Profile Frame, Checker Set and Dice Skin are functional ownership/equipment slots. Each has an explicit `Default` fallback; the current non-default catalog remains deliberately small.
 
 Product rules:
 
@@ -133,7 +133,7 @@ Buying or receiving a cosmetic does not auto-equip it. The item is added to the 
 
 ## Hybrid Match Presentation
 
-Match presentation combines owner-scoped cosmetics from both participants instead of treating cosmetics as a fully local-only skin. Profile Frames and Checker Sets resolve from trusted equipment; Board Theme and Dice Skin presentation still use `Default` until their dedicated expansions.
+Match presentation combines owner-scoped cosmetics from both participants instead of treating cosmetics as a fully local-only skin. Profile Frames, Checker Sets and Dice Skins resolve from trusted equipment; Board Theme presentation still uses `Default` until its dedicated expansion.
 
 ### Board themes
 
@@ -160,9 +160,13 @@ Do not model a future Board Theme as one global `board-theme-*` class for the wh
 
 ### Dice skins
 
-- The visible dice pair combines both players' presentation slots: one die represents the local player's Dice Skin and the other the opponent's Dice Skin.
-- `Default` is used when a participant has no custom Dice Skin.
+- Dice Skin presentation follows authoritative dice ownership rather than fixed screen position.
+- During the opening roll, the first die belongs to seat A and the second die belongs to seat B, so each die uses that player's equipped Dice Skin.
+- During normal turns, both visible dice belong to the authoritative `activePlayer` and therefore both use that player's equipped Dice Skin.
+- `Default` is used when the relevant die owner has no custom Dice Skin.
+- Obsidian Dice is the first non-default implementation and changes presentation only.
 - Every Dice Skin must preserve excellent pip/value readability. Cosmetic rarity can never reduce gameplay clarity.
+- Dice Skin selection never changes authoritative roll generation, rolled values, move legality or any game-engine state.
 
 ### Profile cosmetics and reactions
 
@@ -191,7 +195,11 @@ Exclusive cosmetics do not need to appear in the regular Store and may remain un
 
 ## Store
 
-The implemented Store is a simple persistent server-owned catalog. Current purchasable products are the Bronze Profile Frame for 150 Coins and Marble Checker Set for 200 Coins.
+The implemented Store is a simple persistent server-owned catalog. Current purchasable products are:
+
+- Bronze Profile Frame for 150 Coins;
+- Marble Checker Set for 200 Coins;
+- Obsidian Dice for 250 Coins.
 
 Store principles remain:
 
@@ -204,7 +212,7 @@ Store principles remain:
 - purchased items are equipped separately from the player's Cosmetics collection;
 - exclusive seasonal/event cosmetics may show their acquisition source rather than a Coin price.
 
-The current Store groups implemented content into Profile Frames and Checker Sets. Boards, non-default Dice Skins and Reactions must not be documented as completed Store content before they exist.
+The current Store groups implemented content into Profile Frames, Checker Sets and Dice Skins. Boards and Reactions must not be documented as completed Store content before they exist.
 
 ## Balancing
 

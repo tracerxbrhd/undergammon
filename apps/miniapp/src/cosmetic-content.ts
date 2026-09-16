@@ -30,6 +30,17 @@ const copy: Readonly<Record<string, CosmeticCopy>> = {
       'Набор шашек из светлого и графитового мрамора.',
     ],
   },
+  'DICE_SKIN:default': {
+    name: ['Default Dice', 'Стандартные кости'],
+    description: ['Standard high-contrast dice appearance.', 'Стандартный контрастный вид костей.'],
+  },
+  'DICE_SKIN:obsidian_dice': {
+    name: ['Obsidian Dice', 'Обсидиановые кости'],
+    description: [
+      'Smoked obsidian body with high-contrast ivory pips.',
+      'Дымчатый обсидиан с контрастными светлыми точками.',
+    ],
+  },
 };
 
 function key(slot: CosmeticSlot, cosmeticId: string): string {
@@ -53,5 +64,7 @@ export function cosmeticDescription(
 export function cosmeticSlotLabel(slot: CosmeticSlot, language: Language): string {
   if (slot === 'PROFILE_FRAME') return language === 'ru' ? 'Рамки профиля' : 'Profile Frames';
   if (slot === 'CHECKER_SET') return language === 'ru' ? 'Наборы шашек' : 'Checker Sets';
-  return language === 'ru' ? 'Кости' : 'Dice Skins';
+  if (slot === 'DICE_SKIN') return language === 'ru' ? 'Кости' : 'Dice Skins';
+  const unsupportedSlot: never = slot;
+  throw new Error(`Unsupported cosmetic slot: ${unsupportedSlot}`);
 }

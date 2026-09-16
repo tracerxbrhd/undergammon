@@ -7,6 +7,7 @@ import {
   type PlayerId,
 } from '@undergammon/game-engine';
 import type { ResolvedMatchCosmetics } from './cosmetics';
+import '../styles/dice-skins.css';
 
 function hasBar(board: BoardState): board is BackgammonBoardState {
   return 'bar' in board;
@@ -49,6 +50,24 @@ export function resolveBoardPointPresentation(
   });
 }
 
+export function resolveDicePresentationClasses(
+  game: GameState,
+  seat: PlayerId,
+  cosmetics: ResolvedMatchCosmetics,
+): readonly [string, string] {
+  const classFor = (owner: PlayerId) =>
+    owner === seat
+      ? cosmetics.dice.localSkin.presentation.className
+      : cosmetics.dice.opponentSkin.presentation.className;
+
+  if (game.turnNumber === 1) return [classFor('A'), classFor('B')];
+  if (game.activePlayer) {
+    const activeClass = classFor(game.activePlayer);
+    return [activeClass, activeClass];
+  }
+  return [classFor(seat), classFor(seat)];
+}
+
 export function BoardScene({
   game,
   board,
@@ -80,6 +99,7 @@ export function BoardScene({
 }) {
   const opponent: PlayerId = seat === 'A' ? 'B' : 'A';
   const points = resolveBoardPointPresentation(game, board, seat);
+  const diceClasses = resolveDicePresentationClasses(game, seat, cosmetics);
   return (
     <div
       className="board-scene"
@@ -143,11 +163,7 @@ export function BoardScene({
               key={index}
               value={die}
               used={draft.some((move) => move.die === die)}
-              className={
-                index === 0
-                  ? cosmetics.dice.localSkin.presentation.className
-                  : cosmetics.dice.opponentSkin.presentation.className
-              }
+              className={index === 0 ? diceClasses[0] : diceClasses[1]}
             />
           ))}
           {game.diceRoll?.[0] === game.diceRoll?.[1] && (
