@@ -43,7 +43,14 @@
 .die-preview.dice-skin-obsidian {
   border-color: #71657f;
   background:
-    linear-gradient(132deg, transparent 22%, #a895bd20 24% 27%, transparent 29% 63%, #b9a7cd18 65% 68%, transparent 70%),
+    linear-gradient(
+      132deg,
+      transparent 22%,
+      #a895bd20 24% 27%,
+      transparent 29% 63%,
+      #b9a7cd18 65% 68%,
+      transparent 70%
+    ),
     radial-gradient(circle at 30% 24%, #5e536b, #2a2430 48%, #161219 76%, #0b090d);
   box-shadow:
     inset 0 0 0 1px #ffffff1f,
