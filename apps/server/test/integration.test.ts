@@ -462,7 +462,7 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
     const dates = [
       '2026-01-01',
       '2026-01-02',
-      '2026-01-06',
+      '2026-01-06', // Missing days do not create claims or reset the cycle.
       '2026-01-07',
       '2026-01-08',
       '2026-01-09',
@@ -511,7 +511,9 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
       'DAILY_REWARD_ALREADY_CLAIMED',
     );
     expect(await rows(pool, 'SELECT * FROM daily_reward_claims')).toHaveLength(1);
-    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(1);
+    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(
+      1,
+    );
     expect(
       (await rows<{ coins: number }>(pool, 'SELECT coins FROM accounts WHERE id=$1', [user(0)]))[0]
         ?.coins,
@@ -525,7 +527,9 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
       }),
     ).rejects.toThrow('SIMULATED_DATABASE_FAILURE');
     expect(await rows(pool, 'SELECT * FROM daily_reward_claims')).toHaveLength(0);
-    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(0);
+    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(
+      0,
+    );
     expect(
       (await rows<{ coins: number }>(pool, 'SELECT coins FROM accounts WHERE id=$1', [user(0)]))[0]
         ?.coins,
