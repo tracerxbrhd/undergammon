@@ -26,6 +26,11 @@ import {
 
 const PROFILE_FRAME: CosmeticSlot = 'PROFILE_FRAME';
 const TESTER_FRAME = 'season0_tester_frame';
+const LEGACY_DEFAULT_STORE_SLOTS: readonly CosmeticSlot[] = [
+  'PROFILE_FRAME',
+  'CHECKER_SET',
+  'DICE_SKIN',
+];
 
 export async function equippedCosmetics(
   db: Db | pg.Pool,
@@ -111,7 +116,7 @@ export async function equipCosmetic(
 export async function storeProducts(
   db: Db | pg.Pool,
   accountId: string,
-  slots: readonly CosmeticSlot[] = ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN', 'BOARD_THEME'],
+  slots: readonly CosmeticSlot[] = LEGACY_DEFAULT_STORE_SLOTS,
 ): Promise<StoreProduct[]> {
   const owned = new Set(
     (
