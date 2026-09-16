@@ -64,5 +64,7 @@ export function cosmeticDescription(
 export function cosmeticSlotLabel(slot: CosmeticSlot, language: Language): string {
   if (slot === 'PROFILE_FRAME') return language === 'ru' ? 'Рамки профиля' : 'Profile Frames';
   if (slot === 'CHECKER_SET') return language === 'ru' ? 'Наборы шашек' : 'Checker Sets';
-  return language === 'ru' ? 'Кости' : 'Dice Skins';
+  if (slot === 'DICE_SKIN') return language === 'ru' ? 'Кости' : 'Dice Skins';
+  const unsupportedSlot: never = slot;
+  throw new Error(`Unsupported cosmetic slot: ${unsupportedSlot}`);
 }
