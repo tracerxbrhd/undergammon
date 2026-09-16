@@ -17,11 +17,9 @@ The following capabilities are implemented on `main` and have also been exercise
 - 7-day progressive Daily Reward with explicit claim and authoritative Coin crediting;
 - permanent cosmetic ownership and equipment with backend ownership/slot validation;
 - Season 0 Tester Profile Frame;
-- Store purchase flow with Bronze Profile Frame and Marble Checker Set purchasable for Coins;
-- multi-slot cosmetic identity using `(slot, cosmeticId)` across Store ownership, purchase references and equipment;
-- purchase without auto-equip, plus independent Profile Frame / Checker Set equipment and `Default` fallback;
+- Store purchase flow with Bronze Profile Frame purchasable for Coins;
+- purchase without auto-equip, plus `Store -> purchase -> Cosmetics -> equip -> Profile -> Default` flow;
 - Profile/public-profile and match identity presentation of equipped Profile Frames;
-- owner-aware match presentation of equipped Checker Sets, including different sets for both participants;
 - five primary Mini App destinations: `Store | Cosmetics | Play | Rankings | Profile`, with Play central;
 - Docker Compose production deployment on the VPS with Caddy/HTTPS and PostgreSQL persistence.
 
@@ -31,11 +29,19 @@ Update 1 is implemented and deployed. Its functional chain is:
 
 ## Implemented but requiring more tester feedback
 
+PR 2 is implemented in this change and covered by repository verification, but is not production-verified until it is merged and deployed. It adds:
+
+- Marble Checker Set as a second purchasable cosmetic type;
+- multi-slot cosmetic identity using `(slot, cosmeticId)` across Store ownership, purchase references and equipment;
+- independent Profile Frame / Checker Set equipment and `Default` fallback;
+- owner-aware match presentation of equipped Checker Sets, including different sets for both participants;
+- a reserved `DICE_SKIN` application slot with `Default` as its only current content.
+
 The core production path works, but broader feedback is still useful for:
 
 - Android/iOS Telegram WebView and compact-viewport coverage beyond the devices already used for acceptance;
 - Store/Cosmetics interaction polish and visual feedback;
-- Profile Frame presentation across the full set of profile/match surfaces and unusual viewport sizes;
+- Profile Frame and Checker Set presentation across unusual viewport sizes and real-device match sessions;
 - less frequently exercised admin, account-lifecycle and notification/recovery paths;
 - localization/editorial polish outside the main RU/EN player journey.
 
