@@ -12,6 +12,7 @@ import {
   checkerSetIdSchema,
   diceSkinIdSchema,
   profileFrameIdSchema,
+  reactionPackIdSchema,
 } from '@undergammon/protocol';
 import { rows, transaction, type Db } from './db.js';
 import { applyCoins } from './economy.js';
@@ -39,18 +40,22 @@ export async function equippedCosmetics(
   const equipped = await rows<{ slot: CosmeticSlot; cosmetic_id: string }>(
     db,
     'SELECT slot,cosmetic_id FROM cosmetic_equipment WHERE account_id=$1 AND slot=ANY($2::text[])',
-    [accountId, ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN', 'BOARD_THEME']],
+    [accountId, ['PROFILE_FRAME', 'CHECKER_SET', 'DICE_SKIN', 'BOARD_THEME', 'REACTION_PACK']],
   );
   const bySlot = new Map(equipped.map((item) => [item.slot, item.cosmetic_id]));
   const profileFrame = profileFrameIdSchema.safeParse(bySlot.get('PROFILE_FRAME') ?? 'default');
   const checkerSet = checkerSetIdSchema.safeParse(bySlot.get('CHECKER_SET'));
   const diceSkin = diceSkinIdSchema.safeParse(bySlot.get('DICE_SKIN'));
   const boardTheme = boardThemeIdSchema.safeParse(bySlot.get('BOARD_THEME'));
+  const reactionPack = reactionPackIdSchema.safeParse(bySlot.get('REACTION_PACK'));
   return {
     profileFrame: profileFrame.success ? profileFrame.data : ('default' satisfies ProfileFrameId),
     ...(checkerSet.success && checkerSet.data !== 'default' ? { checkerSet: checkerSet.data } : {}),
     ...(diceSkin.success && diceSkin.data !== 'default' ? { diceSkin: diceSkin.data } : {}),
     ...(boardTheme.success && boardTheme.data !== 'default' ? { boardTheme: boardTheme.data } : {}),
+    ...(reactionPack.success && reactionPack.data !== 'default'
+      ? { reactionPack: reactionPack.data }
+      : {}),
   };
 }
 
