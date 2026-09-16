@@ -4,6 +4,8 @@ import {
   resolveCheckerSet,
   resolveDiceSkin,
   resolveMatchCosmetics,
+  resolveReactionPack,
+  resolveReactionVisual,
 } from '../src/game/cosmetics';
 
 describe('resolveMatchCosmetics', () => {
@@ -22,10 +24,11 @@ describe('resolveMatchCosmetics', () => {
       first.profile.localFrame.presentation.id,
       first.profile.opponentFrame.presentation.id,
       first.reactions.localPack.presentation.id,
-    ]).toEqual(Array.from({ length: 9 }, () => 'default'));
+      first.reactions.opponentPack.presentation.id,
+    ]).toEqual(Array.from({ length: 10 }, () => 'default'));
   });
 
-  it('keeps player-owned board, checker and dice cosmetics aligned when perspective changes', () => {
+  it('keeps player-owned match cosmetics aligned when perspective changes', () => {
     const players = {
       A: {
         cosmetics: {
@@ -33,6 +36,7 @@ describe('resolveMatchCosmetics', () => {
           checkerSet: 'marble_checker_set' as const,
           diceSkin: 'obsidian_dice' as const,
           boardTheme: 'midnight_board' as const,
+          reactionPack: 'neon_reactions' as const,
         },
       },
       B: { cosmetics: { profileFrame: 'default' as const } },
@@ -58,6 +62,12 @@ describe('resolveMatchCosmetics', () => {
       presentation: { id: 'obsidian_dice', className: 'dice-skin-obsidian' },
     });
     expect(viewedByA.dice.opponentSkin.presentation.id).toBe('default');
+    expect(viewedByA.reactions.localPack).toMatchObject({
+      ownerSeat: 'A',
+      presentation: { id: 'neon_reactions', className: 'reaction-pack-neon' },
+    });
+    expect(viewedByA.reactions.opponentPack.presentation.id).toBe('default');
+
     expect(viewedByB.board.localTheme.presentation.id).toBe('default');
     expect(viewedByB.board.opponentTheme).toMatchObject({
       ownerSeat: 'A',
@@ -77,6 +87,11 @@ describe('resolveMatchCosmetics', () => {
       presentation: { id: 'obsidian_dice', className: 'dice-skin-obsidian' },
     });
     expect(viewedByB.profile.opponentFrame.presentation.id).toBe('season0_tester_frame');
+    expect(viewedByB.reactions.localPack.presentation.id).toBe('default');
+    expect(viewedByB.reactions.opponentPack).toMatchObject({
+      ownerSeat: 'A',
+      presentation: { id: 'neon_reactions', className: 'reaction-pack-neon' },
+    });
   });
 
   it('falls back to Default for legacy profile-only cosmetic snapshots', () => {
@@ -94,9 +109,11 @@ describe('resolveMatchCosmetics', () => {
     expect(result.checkers.opponentSet.presentation.id).toBe('default');
     expect(result.dice.localSkin.presentation.id).toBe('default');
     expect(result.dice.opponentSkin.presentation.id).toBe('default');
+    expect(result.reactions.localPack.presentation.id).toBe('default');
+    expect(result.reactions.opponentPack.presentation.id).toBe('default');
   });
 
-  it('maps board, checker and dice cosmetics through application-controlled presentation classes', () => {
+  it('maps cosmetics and semantic reactions through application-controlled presentation', () => {
     expect(resolveBoardTheme('midnight_board')).toEqual({
       id: 'midnight_board',
       className: 'board-theme-midnight',
@@ -109,5 +126,13 @@ describe('resolveMatchCosmetics', () => {
       id: 'obsidian_dice',
       className: 'dice-skin-obsidian',
     });
+    expect(resolveReactionPack('neon_reactions')).toEqual({
+      id: 'neon_reactions',
+      className: 'reaction-pack-neon',
+    });
+    expect(resolveReactionVisual('default', 'GG')).toEqual({ content: '🤝' });
+    expect(resolveReactionVisual('neon_reactions', 'WAVE')).toEqual({ content: 'HI!' });
+    expect(resolveReactionVisual('neon_reactions', 'NICE')).toEqual({ content: 'NICE!' });
+    expect(resolveReactionVisual('neon_reactions', 'GG')).toEqual({ content: 'GG!' });
   });
 });
