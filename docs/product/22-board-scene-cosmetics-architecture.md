@@ -1,6 +1,6 @@
 # 22 — Board Scene and Cosmetic Architecture
 
-Status: accepted UX/UI v2 architecture baseline; resolver/BoardScene integration plus trusted Profile Frame and Checker Set presentation are implemented.
+Status: accepted UX/UI v2 architecture baseline; resolver/BoardScene integration plus trusted Profile Frame, Checker Set and Dice Skin presentation are implemented.
 
 ## Purpose
 
@@ -28,7 +28,7 @@ The Season 0 visual design must not be implemented as a collection of hard-coded
 - Default Profile Frame;
 - Default Reaction Pack.
 
-Update 1 implemented Store, permanent ownership and equipment for `PROFILE_FRAME`; PR 2 extends the same model to `CHECKER_SET` and reserves `DICE_SKIN` in the application contract. Board Theme, non-default Dice Skin and Reaction Pack content still fall back to `Default`.
+Update 1 implemented Store, permanent ownership and equipment for `PROFILE_FRAME`; PR 2 extended the same model to `CHECKER_SET` and reserved `DICE_SKIN`; PR 3 makes `DICE_SKIN` functional with Obsidian Dice as its first non-default implementation. Board Theme and Reaction Pack content still fall back to `Default`.
 
 ## Geometry and appearance are separate concerns
 
@@ -115,19 +115,19 @@ Each participant's checkers use that participant's equipped Checker Set.
 
 Checker cosmetics must fit a common checker bounding box and must not change stack spacing, hit area or effective checker size.
 
-The owner-aware Checker Set hooks in BoardScene now consume trusted equipment. `Default` is the fallback and `marble_checker_set` is the first non-default implementation; neither changes checker geometry, stack behavior or hitboxes.
+The owner-aware Checker Set hooks in BoardScene consume trusted equipment. `Default` is the fallback and `marble_checker_set` is the first non-default implementation; neither changes checker geometry, stack behavior or hitboxes.
 
 ### Dice Skin
 
-The accepted product direction is that the visible dice pair can combine cosmetics from both players, with `Default` as fallback.
+The accepted product direction is that the visible dice pair combines cosmetics from both players: one die represents the local player's Dice Skin and the other represents the opponent's Dice Skin. `Default` remains the fallback independently for either participant.
 
-Dice skins may style the die body/material, but value readability is mandatory. Pip/value presentation should remain constrained by the application or by a validated skin specification so a skin cannot obscure the authoritative dice result.
+Dice skins may style the die body/material, but value readability is mandatory. Pip/value presentation remains application-controlled so a skin cannot obscure the authoritative dice result.
 
-Dice skins must fit fixed dice bounds and must not affect roll semantics or animation timing. The current BoardScene has separate local/opponent Dice Skin presentation hooks, both resolving to `Default` today.
+Dice skins fit the existing fixed dice bounds and do not affect roll semantics, rolled values, animation timing, move legality or game state. BoardScene consumes separate trusted local/opponent Dice Skin presentation hooks. `obsidian_dice` is the first non-default implementation and changes CSS presentation only; the die DOM structure and geometry remain application-owned.
 
 ### Profile Frame and reactions
 
-Profile Frame belongs to the owning player identity surface, while Checker Set belongs to that player's checkers in a match. Both are functional trusted cosmetic slots; Profile Frames are also presented on profile/public-profile surfaces.
+Profile Frame belongs to the owning player identity surface, while Checker Set belongs to that player's checkers in a match. Profile Frames, Checker Sets and Dice Skins are functional trusted cosmetic slots; Profile Frames are also presented on profile/public-profile surfaces.
 
 Reaction Pack controls only the available visual reaction assets/presentation for reactions the account is allowed to use. Reactions remain non-blocking and must not cover gameplay-critical controls or board regions for an extended period. Reaction Pack remains `Default` in the current implementation.
 
@@ -135,7 +135,7 @@ Reaction Pack controls only the available visual reaction assets/presentation fo
 
 The rendering code consumes one resolved presentation model rather than reading ownership/store state directly throughout the component tree.
 
-This boundary is now present in code:
+This boundary is present in code:
 
 ```text
 trusted account/match cosmetic data
@@ -153,19 +153,19 @@ Current implementation status:
 
 - `profile.localFrame` / `profile.opponentFrame`: resolve trusted equipped Profile Frames;
 - `checkers.localSet` / `checkers.opponentSet`: resolve each owner's trusted Checker Set independently, with `Default` fallback;
+- `dice.localSkin` / `dice.opponentSkin`: resolve each owner's trusted Dice Skin independently, with `Default` fallback;
 - `board.localTheme` / `board.opponentTheme`: `Default`;
-- `dice.localSkin` / `dice.opponentSkin`: `Default`;
 - `reactions.localPack`: `Default`.
 
 The important architectural requirement remains the resolver boundary. Adding a future accepted slot should extend trusted data/presentation through that boundary rather than scattering ownership logic through rendering components.
 
 ## Server ownership and trust boundary
 
-Cosmetic ownership/equipment is functional for Profile Frames and Checker Sets, and the backend is authoritative for what an account owns and has equipped.
+Cosmetic ownership/equipment is functional for Profile Frames, Checker Sets and Dice Skins, and the backend is authoritative for what an account owns and has equipped.
 
 The client must not be trusted to declare arbitrary cosmetic IDs to the opponent. Store price, purchase eligibility, ownership and equipment validation are server-owned concerns.
 
-Match/profile presentation uses server-trusted equipment data. Future Board Theme, non-default Dice Skin or Reaction Pack contracts must preserve the same trust boundary.
+Match/profile presentation uses server-trusted equipment data. Future Board Theme or Reaction Pack contracts must preserve the same trust boundary.
 
 This is an economy/identity trust requirement, not a game-rule requirement: cosmetic state must not enter the deterministic game engine.
 
@@ -254,13 +254,13 @@ This rule is especially important for Long Nardy, where large stacks are normal 
 
 ## Scope after Update 1
 
-Store screens, Profile Frame purchasing, permanent ownership/equipment persistence and backend ownership tables are no longer future requirements: Update 1 implemented that vertical slice. PR 2 extends it to Checker Sets without changing Board Scene geometry.
+Store screens, Profile Frame purchasing, permanent ownership/equipment persistence and backend ownership tables are no longer future requirements: Update 1 implemented that vertical slice. PR 2 extended it to Checker Sets without changing Board Scene geometry; PR 3 extends the same trusted path to Dice Skins without changing dice authority or geometry.
 
 This Board Scene architecture still does not require prematurely implementing:
 
 - non-default Board Themes;
-- non-default Dice Skins;
 - non-default Reaction Packs;
+- a broad Dice Skin or Checker Set catalog;
 - Telegram Stars;
 - rarity economy;
 - a large cosmetic catalog;
