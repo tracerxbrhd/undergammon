@@ -52,6 +52,17 @@ const copy: Readonly<Record<string, CosmeticCopy>> = {
       'Холодная полуночная палитра с контрастными пунктами для гибридных матчей.',
     ],
   },
+  'REACTION_PACK:default': {
+    name: ['Default Reactions', 'Стандартные реакции'],
+    description: ['Classic emoji reactions for matches.', 'Классические эмодзи-реакции для матчей.'],
+  },
+  'REACTION_PACK:neon_reactions': {
+    name: ['Neon Reactions', 'Неоновые реакции'],
+    description: [
+      'Compact neon-styled HI, NICE and GG match reactions.',
+      'Компактные неоновые реакции HI, NICE и GG для матчей.',
+    ],
+  },
 };
 
 function key(slot: CosmeticSlot, cosmeticId: string): string {
@@ -77,6 +88,7 @@ export function cosmeticSlotLabel(slot: CosmeticSlot, language: Language): strin
   if (slot === 'CHECKER_SET') return language === 'ru' ? 'Наборы шашек' : 'Checker Sets';
   if (slot === 'DICE_SKIN') return language === 'ru' ? 'Кости' : 'Dice Skins';
   if (slot === 'BOARD_THEME') return language === 'ru' ? 'Темы доски' : 'Board Themes';
+  if (slot === 'REACTION_PACK') return language === 'ru' ? 'Наборы реакций' : 'Reaction Packs';
   const unsupportedSlot: never = slot;
   throw new Error(`Unsupported cosmetic slot: ${unsupportedSlot}`);
 }
