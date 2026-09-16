@@ -33,14 +33,14 @@ export const profileFrameIdSchema = z.enum([
 export type ProfileFrameId = z.infer<typeof profileFrameIdSchema>;
 export const checkerSetIdSchema = z.enum(['default', 'marble_checker_set']);
 export type CheckerSetId = z.infer<typeof checkerSetIdSchema>;
-export const diceSkinIdSchema = z.enum(['default']);
+export const diceSkinIdSchema = z.enum(['default', 'obsidian_dice']);
 export type DiceSkinId = z.infer<typeof diceSkinIdSchema>;
 export type CosmeticId = ProfileFrameId | CheckerSetId | DiceSkinId;
 export interface EquippedCosmetics {
   profileFrame: ProfileFrameId;
   /** Missing means Default, including snapshots written before Checker Sets existed. */
   checkerSet?: CheckerSetId;
-  /** Missing means Default until Dice Skin content is introduced. */
+  /** Missing means Default, including snapshots written before Dice Skins existed. */
   diceSkin?: DiceSkinId;
 }
 export interface OwnedCosmetic {

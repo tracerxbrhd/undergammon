@@ -30,6 +30,17 @@ const copy: Readonly<Record<string, CosmeticCopy>> = {
       'Набор шашек из светлого и графитового мрамора.',
     ],
   },
+  'DICE_SKIN:default': {
+    name: ['Default Dice', 'Стандартные кости'],
+    description: ['Standard high-contrast dice appearance.', 'Стандартный контрастный вид костей.'],
+  },
+  'DICE_SKIN:obsidian_dice': {
+    name: ['Obsidian Dice', 'Обсидиановые кости'],
+    description: [
+      'Smoked obsidian body with high-contrast ivory pips.',
+      'Дымчатый обсидиан с контрастными светлыми точками.',
+    ],
+  },
 };
 
 function key(slot: CosmeticSlot, cosmeticId: string): string {

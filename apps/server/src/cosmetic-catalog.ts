@@ -26,6 +26,12 @@ export const cosmeticDefinitions: readonly CosmeticDefinition[] = [
     purchasable: true,
   },
   { id: 'default', slot: 'DICE_SKIN', purchasable: false },
+  {
+    id: 'obsidian_dice',
+    slot: 'DICE_SKIN',
+    priceCoins: 250,
+    purchasable: true,
+  },
 ];
 
 export const purchasableCosmetics: readonly PurchasableCosmeticDefinition[] =

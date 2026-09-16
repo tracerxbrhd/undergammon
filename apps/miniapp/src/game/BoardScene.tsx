@@ -7,6 +7,7 @@ import {
   type PlayerId,
 } from '@undergammon/game-engine';
 import type { ResolvedMatchCosmetics } from './cosmetics';
+import '../styles/dice-skins.css';
 
 function hasBar(board: BoardState): board is BackgammonBoardState {
   return 'bar' in board;

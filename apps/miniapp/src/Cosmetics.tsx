@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   checkerSetIdSchema,
+  diceSkinIdSchema,
   profileFrameIdSchema,
   type CosmeticId,
   type CosmeticSlot,
@@ -88,6 +89,17 @@ export function Cosmetics({
         }),
       ]
     : [];
+  const diceItems: CosmeticItem[] = inventory
+    ? [
+        { slot: 'DICE_SKIN', cosmeticId: 'default' },
+        ...ownedIds('DICE_SKIN').flatMap((id) => {
+          const parsed = diceSkinIdSchema.safeParse(id);
+          return parsed.success && parsed.data !== 'default'
+            ? [{ slot: 'DICE_SKIN' as const, cosmeticId: parsed.data }]
+            : [];
+        }),
+      ]
+    : [];
 
   const equippedId = (slot: CosmeticSlot): CosmeticId => {
     if (!inventory) return 'default';
@@ -164,6 +176,7 @@ export function Cosmetics({
         <>
           {renderSection('PROFILE_FRAME', frameItems)}
           {renderSection('CHECKER_SET', checkerItems)}
+          {renderSection('DICE_SKIN', diceItems)}
         </>
       )}
     </section>

@@ -224,6 +224,12 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
         priceCoins: 200,
         owned: false,
       },
+      {
+        cosmeticId: 'obsidian_dice',
+        slot: 'DICE_SKIN',
+        priceCoins: 250,
+        owned: false,
+      },
     ]);
     expect(await storeProducts(pool, user(0), ['PROFILE_FRAME'])).toEqual([
       {
@@ -284,6 +290,33 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
     expect(
       (await equipCosmetic(pool, user(0), 'CHECKER_SET', 'default')).checkerSet,
     ).toBeUndefined();
+  });
+  it('purchases and equips Dice Skins independently and snapshots trusted equipment', async () => {
+    await transaction(pool, (db) =>
+      service.coins(db, user(0), 300, 'ADMIN_ADJUSTMENT', 'dice-seed'),
+    );
+    const purchased = await purchaseCosmetic(pool, user(0), 'obsidian_dice', 'DICE_SKIN');
+    expect(purchased.balance).toBe(50);
+    expect((await cosmeticsInventory(pool, user(0))).equipped.diceSkin).toBeUndefined();
+
+    const equipped = await equipCosmetic(pool, user(0), 'DICE_SKIN', 'obsidian_dice');
+    expect(equipped.profileFrame).toBe('default');
+    expect(equipped.checkerSet).toBeUndefined();
+    expect(equipped.diceSkin).toBe('obsidian_dice');
+
+    const snapshot = await transaction(pool, (db) =>
+      service.create(db, user(0), user(1), 'BACKGAMMON', 'CASUAL'),
+    );
+    expect(snapshot.players.A.cosmetics?.diceSkin).toBe('obsidian_dice');
+    expect(snapshot.players.B.cosmetics?.diceSkin).toBeUndefined();
+
+    const ledger = await rows<{ reference: string }>(
+      pool,
+      "SELECT reference FROM coin_ledger WHERE account_id=$1 AND source='COSMETIC_PURCHASE'",
+      [user(0)],
+    );
+    expect(ledger).toEqual([{ reference: 'DICE_SKIN:obsidian_dice' }]);
+    expect((await equipCosmetic(pool, user(0), 'DICE_SKIN', 'default')).diceSkin).toBeUndefined();
   });
   it('allows the same cosmetic id to exist in different ownership slots', async () => {
     await pool.query(
@@ -429,7 +462,7 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
     const dates = [
       '2026-01-01',
       '2026-01-02',
-      '2026-01-06', // Missing days do not create claims or reset the cycle.
+      '2026-01-06',
       '2026-01-07',
       '2026-01-08',
       '2026-01-09',
@@ -478,9 +511,7 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
       'DAILY_REWARD_ALREADY_CLAIMED',
     );
     expect(await rows(pool, 'SELECT * FROM daily_reward_claims')).toHaveLength(1);
-    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(
-      1,
-    );
+    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(1);
     expect(
       (await rows<{ coins: number }>(pool, 'SELECT coins FROM accounts WHERE id=$1', [user(0)]))[0]
         ?.coins,
@@ -494,9 +525,7 @@ describe.skipIf(!url)('PostgreSQL integration', () => {
       }),
     ).rejects.toThrow('SIMULATED_DATABASE_FAILURE');
     expect(await rows(pool, 'SELECT * FROM daily_reward_claims')).toHaveLength(0);
-    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(
-      0,
-    );
+    expect(await rows(pool, "SELECT * FROM coin_ledger WHERE source='DAILY_REWARD'")).toHaveLength(0);
     expect(
       (await rows<{ coins: number }>(pool, 'SELECT coins FROM accounts WHERE id=$1', [user(0)]))[0]
         ?.coins,

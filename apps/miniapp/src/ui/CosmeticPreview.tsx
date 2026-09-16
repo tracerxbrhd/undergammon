@@ -1,5 +1,11 @@
-import { checkerSetIdSchema, profileFrameIdSchema, type CosmeticSlot } from '@undergammon/protocol';
+import {
+  checkerSetIdSchema,
+  diceSkinIdSchema,
+  profileFrameIdSchema,
+  type CosmeticSlot,
+} from '@undergammon/protocol';
 import { CheckerSetPreview } from './CheckerSetPreview';
+import { DiceSkinPreview } from './DiceSkinPreview';
 import { ProfileFramePreview } from './ProfileFramePreview';
 
 export function CosmeticPreview({ slot, cosmeticId }: { slot: CosmeticSlot; cosmeticId: string }) {
@@ -10,6 +16,10 @@ export function CosmeticPreview({ slot, cosmeticId }: { slot: CosmeticSlot; cosm
   if (slot === 'CHECKER_SET') {
     const parsed = checkerSetIdSchema.safeParse(cosmeticId);
     if (parsed.success) return <CheckerSetPreview cosmeticId={parsed.data} />;
+  }
+  if (slot === 'DICE_SKIN') {
+    const parsed = diceSkinIdSchema.safeParse(cosmeticId);
+    if (parsed.success) return <DiceSkinPreview cosmeticId={parsed.data} />;
   }
   return (
     <span className="cosmetic-preview" aria-hidden="true">

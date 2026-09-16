@@ -21,4 +21,13 @@ describe('cosmetic catalog identity', () => {
     });
     expect(purchasableCosmeticDefinition('PROFILE_FRAME', 'marble_checker_set')).toBeUndefined();
   });
+
+  it('requires the exact slot for purchasable Dice Skin content', () => {
+    expect(purchasableCosmeticDefinition('DICE_SKIN', 'obsidian_dice')).toMatchObject({
+      slot: 'DICE_SKIN',
+      id: 'obsidian_dice',
+      priceCoins: 250,
+    });
+    expect(purchasableCosmeticDefinition('CHECKER_SET', 'obsidian_dice')).toBeUndefined();
+  });
 });

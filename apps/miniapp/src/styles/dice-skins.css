@@ -1,0 +1,58 @@
+.dice-skin-preview {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface-strong);
+}
+
+.die-preview {
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  border: 1px solid #c8c0ae;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #fffdf7, #d8d0bd);
+  box-shadow:
+    inset 0 1px 2px #fff,
+    0 2px 4px #0008;
+}
+
+.die-preview > span {
+  display: grid;
+  place-items: center;
+}
+
+.die-preview > span.pip::after {
+  content: '';
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #1d211f;
+}
+
+.die.dice-skin-obsidian,
+.die-preview.dice-skin-obsidian {
+  border-color: #71657f;
+  background:
+    linear-gradient(132deg, transparent 22%, #a895bd20 24% 27%, transparent 29% 63%, #b9a7cd18 65% 68%, transparent 70%),
+    radial-gradient(circle at 30% 24%, #5e536b, #2a2430 48%, #161219 76%, #0b090d);
+  box-shadow:
+    inset 0 0 0 1px #ffffff1f,
+    inset -3px -4px 8px #0008,
+    0 2px 5px #0009;
+}
+
+.die.dice-skin-obsidian i.pip::after,
+.die-preview.dice-skin-obsidian > span.pip::after {
+  background: #f4eedf;
+  box-shadow: 0 0 2px #ffffff66;
+}
