@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and the multi-slot Profile Frame / Checker Set / Dice Skin Store and equipment vertical slices are implemented; broader cosmetic categories remain expansion scope.
+Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and the multi-slot Profile Frame / Checker Set / Dice Skin / Board Theme Store and equipment vertical slices are implemented; broader cosmetic catalogs and Reaction Packs remain expansion scope.
 
 ## Currency
 
@@ -27,18 +27,19 @@ The implemented economy/cosmetics chain is:
 
 Current content/contracts are intentionally narrow:
 
-- functional cosmetic slots: `PROFILE_FRAME`, `CHECKER_SET` and `DICE_SKIN`;
-- non-purchasable `Default` Profile Frame, `Default` Checker Set and `Default` Dice Skin;
+- functional cosmetic slots: `PROFILE_FRAME`, `CHECKER_SET`, `DICE_SKIN` and `BOARD_THEME`;
+- non-purchasable `Default` variants for every implemented slot;
 - Season 0 Tester Profile Frame, granted server-side for Season 0 participation;
 - Bronze Profile Frame, purchasable for 150 Coins;
 - Marble Checker Set, purchasable for 200 Coins;
 - Obsidian Dice, purchasable for 250 Coins;
+- Midnight Board, purchasable for 300 Coins;
 - Store purchase does not auto-equip;
 - equipment is validated against backend ownership and slot compatibility;
 - Store ownership, purchase ledger references and equipment use `(slot, cosmeticId)` identity;
-- equipped Profile Frames, Checker Sets and Dice Skins are exposed through trusted account/match contracts and resolved by owner identity.
+- equipped Profile Frames, Checker Sets, Dice Skins and Board Themes are exposed through trusted account/match contracts and resolved by owner identity.
 
-Board Themes, Reaction Packs and a large cosmetic catalog remain future expansion work. The Board Scene already has presentation boundaries for these future slots without requiring gameplay or geometry changes.
+Reaction Packs and a large cosmetic catalog remain future expansion work. The Board Scene presentation boundaries are intentionally owner-aware so future cosmetics do not require gameplay or geometry changes.
 
 ## Future Telegram Monetization
 
@@ -113,7 +114,7 @@ Accepted cosmetic categories include:
 - Reaction Pack;
 - future visual effects where appropriate.
 
-Profile Frame, Checker Set and Dice Skin are functional ownership/equipment slots. Each has an explicit `Default` fallback; the current non-default catalog remains deliberately small.
+Profile Frame, Checker Set, Dice Skin and Board Theme are functional ownership/equipment slots. Each has an explicit `Default` fallback; the current non-default catalog remains deliberately small.
 
 Product rules:
 
@@ -133,25 +134,32 @@ Buying or receiving a cosmetic does not auto-equip it. The item is added to the 
 
 ## Hybrid Match Presentation
 
-Match presentation combines owner-scoped cosmetics from both participants instead of treating cosmetics as a fully local-only skin. Profile Frames, Checker Sets and Dice Skins resolve from trusted equipment; Board Theme presentation still uses `Default` until its dedicated expansion.
+Match presentation combines owner-scoped cosmetics from both participants instead of treating cosmetics as a fully local-only skin. Profile Frames, Checker Sets, Dice Skins and Board Themes resolve from trusted equipment captured by authoritative account/match contracts.
 
 ### Board themes
 
-- Each player's board-owned region uses that player's equipped Board Theme.
-- Board themes must be designed as composable assets so two different themes can coexist in one match.
-- Shared or neutral board elements use a deterministic compatible presentation.
-- `Default` is the fallback when a player has no custom board equipped.
-- A player's missing cosmetic must not cause the opponent's cosmetic to overwrite that player's identity.
+Board Theme composition is implemented as an owner-aware hybrid rather than one global skin:
+
+- Each player's board-owned physical region uses that player's equipped Board Theme.
+- Region ownership is derived from authoritative seat/physical-board identity and then mapped through the current viewer perspective.
+- The client must not hard-code `top = opponent`, `bottom = player`, or any other screen-coordinate shortcut that can become wrong after perspective rotation.
+- Board themes are composable application-controlled presentations so two different themes can coexist in one match.
+- The shared center remains deterministic and application-controlled rather than being claimed by either participant's theme.
+- `Default` is the fallback when a player has no custom board equipped or when loading a legacy snapshot without `boardTheme`.
+- A player's missing cosmetic must not cause the opponent's cosmetic to overwrite that player's region.
+- Midnight Board is the first non-default implementation and changes presentation only.
+- Board Themes must never alter point geometry, hitboxes, move targeting, board coordinates or game-engine state.
+- Arbitrary runtime CSS, remote theme code and untrusted style injection are not allowed; trusted theme IDs resolve to application-owned presentation classes/tokens.
 
 Conceptually:
 
 ```text
-Opponent-owned region -> opponent Board Theme
-Shared center          -> neutral / deterministic composition
-Player-owned region   -> player Board Theme
+Owner A region -> owner A Board Theme
+Shared center  -> neutral / deterministic composition
+Owner B region -> owner B Board Theme
 ```
 
-Do not model a future Board Theme as one global `board-theme-*` class for the whole match.
+Do not model a Board Theme as one global `board-theme-*` class for the whole match.
 
 ### Checker sets
 
@@ -199,7 +207,8 @@ The implemented Store is a simple persistent server-owned catalog. Current purch
 
 - Bronze Profile Frame for 150 Coins;
 - Marble Checker Set for 200 Coins;
-- Obsidian Dice for 250 Coins.
+- Obsidian Dice for 250 Coins;
+- Midnight Board for 300 Coins.
 
 Store principles remain:
 
@@ -212,7 +221,7 @@ Store principles remain:
 - purchased items are equipped separately from the player's Cosmetics collection;
 - exclusive seasonal/event cosmetics may show their acquisition source rather than a Coin price.
 
-The current Store groups implemented content into Profile Frames, Checker Sets and Dice Skins. Boards and Reactions must not be documented as completed Store content before they exist.
+The current Store groups implemented content into Profile Frames, Checker Sets, Dice Skins and Board Themes. Reactions must not be documented as completed Store content before they exist.
 
 ## Balancing
 
