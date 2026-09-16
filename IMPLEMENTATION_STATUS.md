@@ -31,22 +31,25 @@ Update 1 is implemented and deployed. Its functional chain is:
 
 PR 2 is merged into `main` and adds the multi-slot cosmetics foundation plus the first Checker Set vertical slice. Its post-merge production/device verification remains separate from the repository-level implementation claim.
 
-PR 3 is implemented in this change and adds:
+PR 3 is merged into `main` and adds the first Dice Skin vertical slice: Obsidian Dice, independent Dice Skin equipment, trusted match-snapshot capture and authoritative owner-aware dice presentation. Its post-merge production/device verification remains separate from the repository-level implementation claim.
 
-- Obsidian Dice as the first purchasable Dice Skin, priced at 250 Coins;
-- `DICE_SKIN` as a functional Store, ownership and equipment slot alongside Profile Frames and Checker Sets;
-- independent Dice Skin equipment with `Default` fallback and no purchase auto-equip;
-- trusted equipped Dice Skins captured in new match snapshots;
-- authoritative owner-aware match presentation: opening dice map to seats A/B, while normal-turn dice both use the active player's Dice Skin;
-- application-controlled CSS presentation that preserves fixed dice geometry and high-contrast pips.
+PR 4 is implemented in this change and adds:
 
-PR 3 does not change dice generation, authoritative roll values, game-engine rules, move legality or BoardScene interaction geometry. It is not production-verified until it is merged, deployed and exercised on real Telegram clients.
+- Midnight Board as the first purchasable Board Theme, priced at 300 Coins;
+- `BOARD_THEME` as a functional Store, ownership and equipment slot alongside Profile Frames, Checker Sets and Dice Skins;
+- independent Board Theme equipment with `Default` fallback and no purchase auto-equip;
+- trusted equipped Board Themes captured in newly created match snapshots;
+- hybrid Board Scene composition in which each authoritative player/seat owns one board region while the shared center remains deterministic and application-controlled;
+- perspective-safe region mapping through authoritative physical board coordinates rather than hard-coded `top = player/opponent` assumptions;
+- application-controlled CSS tokens/classes with no remote assets or arbitrary runtime CSS injection.
+
+PR 4 does not change game-engine rules, board geometry, point hitboxes, dice generation, move legality or authoritative match state. It is not production-verified until it is merged, deployed and exercised on real Telegram clients.
 
 The core production path works, but broader feedback is still useful for:
 
 - Android/iOS Telegram WebView and compact-viewport coverage beyond the devices already used for acceptance;
 - Store/Cosmetics interaction polish and visual feedback;
-- Profile Frame, Checker Set and Dice Skin presentation across unusual viewport sizes and real-device match sessions;
+- Profile Frame, Checker Set, Dice Skin and Board Theme presentation across unusual viewport sizes and real-device match sessions;
 - less frequently exercised admin, account-lifecycle and notification/recovery paths;
 - localization/editorial polish outside the main RU/EN player journey.
 
@@ -54,8 +57,9 @@ These are not claims that the underlying features are absent; they are areas whe
 
 ## Partial / known technical debt
 
-- Cosmetics remain intentionally narrow: `PROFILE_FRAME`, `CHECKER_SET` and `DICE_SKIN` are functional slots with one focused non-default Store item each where applicable. Board Themes and Reaction Packs are not implemented content yet.
-- `resolveMatchCosmetics` / `ResolvedMatchCosmetics` and BoardScene owner-aware hooks resolve trusted Profile Frames, per-owner Checker Sets and per-owner Dice Skins. Board Theme and Reaction Pack presentation still fall back to `Default`.
+- Cosmetics remain intentionally narrow: `PROFILE_FRAME`, `CHECKER_SET`, `DICE_SKIN` and `BOARD_THEME` are functional slots with one focused non-default Store item each where applicable. Reaction Packs are not implemented content yet.
+- `resolveMatchCosmetics` / `ResolvedMatchCosmetics` and BoardScene owner-aware hooks resolve trusted Profile Frames, per-owner Checker Sets, Dice Skins and Board Themes. Reaction Pack presentation still falls back to `Default`.
+- Board Theme composition deliberately themes owner regions while keeping the shared center deterministic and neutral; broader theme catalogs and richer visual assets are deferred until the first hybrid slice has real-device feedback.
 - Primary navigation is correctly five-tab and configuration-driven, but the current glyphs are Unicode presentation shortcuts rather than the intended production icon set.
 - The backend is a single process and live socket routing is process-local. Do not run multiple server replicas with the current realtime architecture.
 - The transaction advisory-lock strategy deliberately prioritizes correctness over throughput; broad load/capacity testing has not been performed.
@@ -102,10 +106,12 @@ Update 1 final verification for PR #11 passed the repository's production verifi
 
 The repository CI definition runs the same core build/lint/format/typecheck/test/E2E/audit/Compose checks against an isolated PostgreSQL service. Tests and exact local commands are documented in [`docs/development/README.md`](docs/development/README.md). Integration tests truncate their test database: never point `TEST_DATABASE_URL` at production data.
 
-PR 3 adds focused catalog/resolver/integration coverage plus an end-to-end Obsidian Dice purchase -> equip -> reload-persistence scenario. BoardScene unit coverage verifies opening-roll owner mapping and active-player Dice Skin mapping for both supported rulesets. Its verification result should be taken from the PR CI run rather than inferred from this document.
+PR 3 added focused catalog/resolver/integration coverage plus an end-to-end Obsidian Dice purchase -> equip -> reload-persistence scenario. BoardScene unit coverage verifies opening-roll owner mapping and active-player Dice Skin mapping for both supported rulesets.
+
+PR 4 adds focused protocol/catalog/resolver coverage, BoardScene perspective tests for hybrid theme-region ownership in both supported rulesets, and an end-to-end Midnight Board purchase -> equip -> reload -> new-match-snapshot scenario. Its verification result should be taken from the PR CI run rather than inferred from this document.
 
 ## Current release position
 
-There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2 is merged; PR 3 adds the focused Dice Skin vertical slice pending review, merge, deployment and real-device verification.
+There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2 and PR 3 are merged; PR 4 adds the focused hybrid Board Theme vertical slice pending review, merge, deployment and real-device verification.
 
 Season 0 remains an Open Beta. Production verification does not imply broad scale/load validation or completion of every deferred product specification.
