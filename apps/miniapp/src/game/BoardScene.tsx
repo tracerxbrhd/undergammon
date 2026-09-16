@@ -51,12 +51,21 @@ export function resolveBoardPointPresentation(
 }
 
 export function resolveDicePresentationClasses(
+  game: GameState,
+  seat: PlayerId,
   cosmetics: ResolvedMatchCosmetics,
 ): readonly [string, string] {
-  return [
-    cosmetics.dice.localSkin.presentation.className,
-    cosmetics.dice.opponentSkin.presentation.className,
-  ];
+  const classFor = (owner: PlayerId) =>
+    owner === seat
+      ? cosmetics.dice.localSkin.presentation.className
+      : cosmetics.dice.opponentSkin.presentation.className;
+
+  if (game.turnNumber === 1) return [classFor('A'), classFor('B')];
+  if (game.activePlayer) {
+    const activeClass = classFor(game.activePlayer);
+    return [activeClass, activeClass];
+  }
+  return [classFor(seat), classFor(seat)];
 }
 
 export function BoardScene({
@@ -90,7 +99,7 @@ export function BoardScene({
 }) {
   const opponent: PlayerId = seat === 'A' ? 'B' : 'A';
   const points = resolveBoardPointPresentation(game, board, seat);
-  const diceClasses = resolveDicePresentationClasses(cosmetics);
+  const diceClasses = resolveDicePresentationClasses(game, seat, cosmetics);
   return (
     <div
       className="board-scene"
