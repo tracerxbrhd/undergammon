@@ -10,6 +10,7 @@ import {
 } from '@undergammon/game-engine';
 import {
   resolveBoardPointPresentation,
+  resolveBoardThemeRegionClasses,
   resolveDicePresentationClasses,
 } from '../src/game/BoardScene';
 import { resolveMatchCosmetics } from '../src/game/cosmetics';
@@ -92,6 +93,35 @@ describe.each([
     });
   });
 });
+
+describe.each(['LONG_NARDY', 'BACKGAMMON'] satisfies GameRuleset[])(
+  '%s hybrid Board Theme presentation',
+  (ruleset) => {
+    const players = {
+      A: { cosmetics: { profileFrame: 'default' as const, boardTheme: 'midnight_board' as const } },
+      B: { cosmetics: { profileFrame: 'default' as const } },
+    };
+
+    it('maps authoritative A/B board regions through both viewer perspectives', () => {
+      const game = initialGame(ruleset);
+
+      expect(
+        resolveBoardThemeRegionClasses(
+          game,
+          'A',
+          resolveMatchCosmetics({ localSeat: 'A', players }),
+        ),
+      ).toEqual({ top: 'board-theme-midnight', bottom: 'board-theme-default' });
+      expect(
+        resolveBoardThemeRegionClasses(
+          game,
+          'B',
+          resolveMatchCosmetics({ localSeat: 'B', players }),
+        ),
+      ).toEqual({ top: 'board-theme-default', bottom: 'board-theme-midnight' });
+    });
+  },
+);
 
 describe.each(['LONG_NARDY', 'BACKGAMMON'] satisfies GameRuleset[])(
   '%s Board Scene Dice Skin presentation',
