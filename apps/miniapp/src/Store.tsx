@@ -5,6 +5,7 @@ import type { Language } from './content';
 import { cosmeticDescription, cosmeticName, cosmeticSlotLabel } from './cosmetic-content';
 import { EmptyStateIcon, RetryIcon } from './ui/icons';
 import { CosmeticPreview } from './ui/CosmeticPreview';
+import './styles/release-candidate.css';
 
 interface Notice {
   readonly kind: 'success' | 'error';

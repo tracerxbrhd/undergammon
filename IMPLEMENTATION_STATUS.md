@@ -37,7 +37,7 @@ PR 4 is merged into `main` and adds the first Board Theme vertical slice: Midnig
 
 PR 5 is merged into `main` and adds the first Reaction Pack vertical slice: Neon Reactions, independent Reaction Pack equipment, trusted match-snapshot capture and sender-owned realtime reaction presentation. Realtime semantics remain strictly `WAVE`, `NICE` and `GG`; packs only map those trusted semantics to application-owned presentation. Its post-merge production/device verification remains separate from the repository-level implementation claim.
 
-PR 6 starts the production-hardening stage with controlling-session and reconnect recovery work:
+PR 6 is merged into `main` and starts the production-hardening stage with controlling-session and reconnect recovery work:
 
 - the Mini App transport tracks session control as `requesting`, `owned` or `lost` instead of optimistically treating a local button press as ownership;
 - **Continue on this device** only restores gameplay after the server acknowledges the exact `OPEN` command;
@@ -46,7 +46,17 @@ PR 6 starts the production-hardening stage with controlling-session and reconnec
 - server-authoritative control ownership and match rules remain unchanged;
 - deterministic transport coverage exercises acknowledgement, offline requests and reconnect retry semantics, while a multi-session browser scenario verifies real authoritative control transfer between two sessions of one Game Account.
 
-PR 6 is not production-verified until it is merged, deployed and exercised on real Telegram clients.
+Its post-merge production/device verification remains separate from the repository-level implementation claim.
+
+PR 7 is implemented in this change as the Update 2 release-candidate hardening slice:
+
+- Update 2 is feature-frozen; new gameplay, economy and cosmetic catalog work moves to the next development cycle;
+- compact Store/Cosmetics cards remain usable down to the supported 320px Telegram WebView width;
+- reaction and blocking match overlays are constrained for narrow mobile viewports;
+- a release-smoke browser scenario covers the current purchasable cosmetic set as one system: purchase, independent equipment, reload persistence, trusted private-match snapshot, compact presentation, reaction delivery, match completion and history persistence;
+- [`docs/operations/update-2-release.md`](docs/operations/update-2-release.md) defines the automated gate, two-account real Telegram acceptance, backup/deploy and post-deploy smoke checklist.
+
+PR 7 is not production-verified until it is merged, deployed and exercised on real Telegram clients.
 
 The core production path works, but broader feedback is still useful for:
 
@@ -115,10 +125,12 @@ PR 4 added focused protocol/catalog/resolver coverage, BoardScene perspective te
 
 PR 5 added focused protocol/catalog/resolver coverage and an end-to-end Neon Reactions purchase -> equip -> reload -> new-match-snapshot -> realtime sender-owned presentation scenario.
 
-PR 6 adds transport-level tests for acknowledged controlling-session ownership, offline requests and reconnect retry, plus a browser scenario with two sessions for one Game Account that verifies explicit authoritative control transfer. Its final verification result should be taken from the PR CI run rather than inferred from this document.
+PR 6 added transport-level tests for acknowledged controlling-session ownership, offline requests and reconnect retry, plus a browser scenario with two sessions for one Game Account that verifies explicit authoritative control transfer.
+
+PR 7 adds the aggregate Update 2 release-smoke scenario and compact-layout assertions. Its final verification result should be taken from the PR CI run rather than inferred from this document.
 
 ## Current release position
 
-There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2, PR 3, PR 4 and PR 5 are merged. PR 6 is the first focused production-hardening slice after the cosmetics architecture was completed.
+There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2, PR 3, PR 4, PR 5 and PR 6 are merged. PR 7 is the final code-level release-candidate gate before Update 2 real Telegram acceptance and production deployment.
 
 Season 0 remains an Open Beta. Production verification does not imply broad scale/load validation or completion of every deferred product specification.
