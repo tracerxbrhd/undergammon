@@ -327,9 +327,7 @@ export function Game({
                 <button
                   key={reactionOption}
                   disabled={!online}
-                  onClick={() =>
-                    transport.current?.send('REACTION', { reaction: reactionOption })
-                  }
+                  onClick={() => transport.current?.send('REACTION', { reaction: reactionOption })}
                 >
                   {resolveReactionVisual(localReactionPack.id, reactionOption).content}
                 </button>
