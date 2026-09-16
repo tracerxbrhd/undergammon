@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { initialGame, type BoardState, type GameRuleset } from '@undergammon/game-engine';
+import {
+  commitTurn,
+  initialGame,
+  legalTurns,
+  openGame,
+  rollGame,
+  type BoardState,
+  type GameRuleset,
+} from '@undergammon/game-engine';
 import {
   resolveBoardPointPresentation,
   resolveDicePresentationClasses,
@@ -85,18 +93,55 @@ describe.each([
   });
 });
 
-describe('Board Scene Dice Skin presentation', () => {
-  const players = {
-    A: { cosmetics: { profileFrame: 'default' as const, diceSkin: 'obsidian_dice' as const } },
-    B: { cosmetics: { profileFrame: 'default' as const } },
-  };
+describe.each(['LONG_NARDY', 'BACKGAMMON'] satisfies GameRuleset[])(
+  '%s Board Scene Dice Skin presentation',
+  (ruleset) => {
+    const players = {
+      A: { cosmetics: { profileFrame: 'default' as const, diceSkin: 'obsidian_dice' as const } },
+      B: { cosmetics: { profileFrame: 'default' as const } },
+    };
 
-  it('applies local and opponent Dice Skin classes in fixed die order for both perspectives', () => {
-    expect(
-      resolveDicePresentationClasses(resolveMatchCosmetics({ localSeat: 'A', players })),
-    ).toEqual(['dice-skin-obsidian', 'dice-skin-default']);
-    expect(
-      resolveDicePresentationClasses(resolveMatchCosmetics({ localSeat: 'B', players })),
-    ).toEqual(['dice-skin-default', 'dice-skin-obsidian']);
-  });
-});
+    it('keeps opening dice attached to seats A and B in both perspectives', () => {
+      const opening = openGame(initialGame(ruleset), [6, 2]);
+
+      expect(
+        resolveDicePresentationClasses(
+          opening,
+          'A',
+          resolveMatchCosmetics({ localSeat: 'A', players }),
+        ),
+      ).toEqual(['dice-skin-obsidian', 'dice-skin-default']);
+      expect(
+        resolveDicePresentationClasses(
+          opening,
+          'B',
+          resolveMatchCosmetics({ localSeat: 'B', players }),
+        ),
+      ).toEqual(['dice-skin-obsidian', 'dice-skin-default']);
+    });
+
+    it('uses the active player Dice Skin for both dice after the opening turn', () => {
+      const opening = openGame(initialGame(ruleset), [2, 6]);
+      const openingTurn = legalTurns(opening)[0];
+      if (!openingTurn) throw new Error('Expected a legal opening turn');
+      const waitingForA = commitTurn(opening, openingTurn);
+      const rolledByA = rollGame(waitingForA, [3, 1]);
+
+      expect(rolledByA.activePlayer).toBe('A');
+      expect(
+        resolveDicePresentationClasses(
+          rolledByA,
+          'A',
+          resolveMatchCosmetics({ localSeat: 'A', players }),
+        ),
+      ).toEqual(['dice-skin-obsidian', 'dice-skin-obsidian']);
+      expect(
+        resolveDicePresentationClasses(
+          rolledByA,
+          'B',
+          resolveMatchCosmetics({ localSeat: 'B', players }),
+        ),
+      ).toEqual(['dice-skin-obsidian', 'dice-skin-obsidian']);
+    });
+  },
+);
