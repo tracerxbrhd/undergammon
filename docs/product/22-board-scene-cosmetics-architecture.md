@@ -119,11 +119,13 @@ The owner-aware Checker Set hooks in BoardScene consume trusted equipment. `Defa
 
 ### Dice Skin
 
-The accepted product direction is that the visible dice pair combines cosmetics from both players: one die represents the local player's Dice Skin and the other represents the opponent's Dice Skin. `Default` remains the fallback independently for either participant.
+Dice Skin presentation follows authoritative die ownership, not a fixed "local die / opponent die" screen convention.
+
+During the opening roll, the first die represents seat A and the second represents seat B, so each die uses the equipped Dice Skin of its owning seat. During normal turns, both dice belong to the authoritative `activePlayer` and therefore both use that player's equipped Dice Skin. `Default` remains the fallback for the relevant owner.
 
 Dice skins may style the die body/material, but value readability is mandatory. Pip/value presentation remains application-controlled so a skin cannot obscure the authoritative dice result.
 
-Dice skins fit the existing fixed dice bounds and do not affect roll semantics, rolled values, animation timing, move legality or game state. BoardScene consumes separate trusted local/opponent Dice Skin presentation hooks. `obsidian_dice` is the first non-default implementation and changes CSS presentation only; the die DOM structure and geometry remain application-owned.
+Dice skins fit the existing fixed dice bounds and do not affect roll semantics, rolled values, animation timing, move legality or game state. BoardScene consumes trusted owner-aware Dice Skin presentation through the local/opponent resolver boundary and maps it back to authoritative seat ownership. `obsidian_dice` is the first non-default implementation and changes CSS presentation only; the die DOM structure and geometry remain application-owned.
 
 ### Profile Frame and reactions
 
