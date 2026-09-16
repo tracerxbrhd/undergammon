@@ -1,6 +1,6 @@
 # 22 — Board Scene and Cosmetic Architecture
 
-Status: accepted UX/UI v2 architecture baseline; resolver/BoardScene integration plus trusted Profile Frame, Checker Set, Dice Skin and hybrid Board Theme presentation are implemented.
+Status: accepted UX/UI v2 architecture baseline; resolver/BoardScene integration plus trusted Profile Frame, Checker Set, Dice Skin, hybrid Board Theme and Reaction Pack presentation are implemented.
 
 ## Purpose
 
@@ -28,7 +28,7 @@ The Season 0 visual design must not be implemented as a collection of hard-coded
 - Default Profile Frame;
 - Default Reaction Pack.
 
-Update 1 implemented Store, permanent ownership and equipment for `PROFILE_FRAME`; PR 2 extended the same model to `CHECKER_SET` and reserved `DICE_SKIN`; PR 3 made `DICE_SKIN` functional with Obsidian Dice as its first non-default implementation; PR 4 makes `BOARD_THEME` functional with Midnight Board and hybrid owner-aware composition. Reaction Pack content still falls back to `Default`.
+Update 1 implemented Store, permanent ownership and equipment for `PROFILE_FRAME`; PR 2 extended the same model to `CHECKER_SET`; PR 3 made `DICE_SKIN` functional with Obsidian Dice as its first non-default implementation; PR 4 made `BOARD_THEME` functional with Midnight Board and hybrid owner-aware composition; PR 5 makes `REACTION_PACK` functional with Neon Reactions while preserving the existing semantic reaction protocol.
 
 ## Geometry and appearance are separate concerns
 
@@ -138,9 +138,13 @@ Dice skins fit the existing fixed dice bounds and do not affect roll semantics, 
 
 ### Profile Frame and reactions
 
-Profile Frame belongs to the owning player identity surface, while Checker Set belongs to that player's checkers in a match. Profile Frames, Checker Sets, Dice Skins and Board Themes are functional trusted cosmetic slots; Profile Frames are also presented on profile/public-profile surfaces.
+Profile Frame belongs to the owning player identity surface, while Checker Set belongs to that player's checkers in a match. Profile Frames, Checker Sets, Dice Skins, Board Themes and Reaction Packs are functional trusted cosmetic slots; Profile Frames are also presented on profile/public-profile surfaces.
 
-Reaction Pack controls only the available visual reaction assets/presentation for reactions the account is allowed to use. Reactions remain non-blocking and must not cover gameplay-critical controls or board regions for an extended period. Reaction Pack remains `Default` in the current implementation.
+Reaction Pack changes only application-controlled presentation for the fixed semantic reactions the account is allowed to send. The wire/realtime contract remains `WAVE`, `NICE` and `GG`; a cosmetic cannot introduce arbitrary command types or payload content.
+
+The local reaction picker uses the local player's equipped pack. Incoming reactions are resolved through the authoritative sender's pack captured in the match snapshot, so presentation remains attached to owner identity across perspective changes and reconnects. Missing or legacy `reactionPack` data falls back to `Default`.
+
+`neon_reactions` is the first non-default Reaction Pack. It maps the same three semantic reactions to compact application-owned `HI!`, `NICE!` and `GG!` presentation. Reactions remain brief, non-blocking and must not cover gameplay-critical controls or board regions for an extended period. Account-level opponent-reaction muting remains independent of cosmetic presentation.
 
 ## Cosmetic resolution boundary
 
@@ -155,10 +159,10 @@ resolveMatchCosmetics(...)
         ↓
 ResolvedMatchCosmetics
         ↓
-BoardScene / player identity presentation
+BoardScene / player identity / reaction presentation
 ```
 
-`ResolvedMatchCosmetics` contains owner-aware local/opponent presentation slots for board, checkers, dice and profile frames, plus the local reaction presentation. Perspective is resolved from the viewer's authoritative seat identity rather than from fixed screen-top/screen-bottom assumptions.
+`ResolvedMatchCosmetics` contains owner-aware local/opponent presentation slots for board, checkers, dice, profile frames and reaction packs. Perspective is resolved from the viewer's authoritative seat identity rather than from fixed screen-top/screen-bottom assumptions.
 
 Current implementation status:
 
@@ -166,17 +170,17 @@ Current implementation status:
 - `checkers.localSet` / `checkers.opponentSet`: resolve each owner's trusted Checker Set independently, with `Default` fallback;
 - `dice.localSkin` / `dice.opponentSkin`: resolve each owner's trusted Dice Skin independently, with `Default` fallback;
 - `board.localTheme` / `board.opponentTheme`: resolve each owner's trusted Board Theme independently, with `Default` fallback; BoardScene then maps those presentations to authoritative physical owner regions;
-- `reactions.localPack`: `Default`.
+- `reactions.localPack` / `reactions.opponentPack`: resolve each owner's trusted Reaction Pack independently, with `Default` fallback; the picker uses local presentation and incoming reactions use sender presentation.
 
 The important architectural requirement remains the resolver boundary. Adding a future accepted slot should extend trusted data/presentation through that boundary rather than scattering ownership logic through rendering components.
 
 ## Server ownership and trust boundary
 
-Cosmetic ownership/equipment is functional for Profile Frames, Checker Sets, Dice Skins and Board Themes, and the backend is authoritative for what an account owns and has equipped.
+Cosmetic ownership/equipment is functional for Profile Frames, Checker Sets, Dice Skins, Board Themes and Reaction Packs, and the backend is authoritative for what an account owns and has equipped.
 
 The client must not be trusted to declare arbitrary cosmetic IDs to the opponent. Store price, purchase eligibility, ownership and equipment validation are server-owned concerns.
 
-Match/profile presentation uses server-trusted equipment data. Future Reaction Pack contracts must preserve the same trust boundary.
+Match/profile presentation uses server-trusted equipment data. Reaction Pack IDs follow the same trust boundary, while realtime reaction commands remain validated against the fixed protocol enum.
 
 This is an economy/identity trust requirement, not a game-rule requirement: cosmetic state must not enter the deterministic game engine.
 
@@ -192,7 +196,7 @@ Do not support:
 - skin-defined gameplay DOM structure;
 - skin-defined hitboxes.
 
-Prefer a curated asset/specification model with known fields and application-controlled rendering. Current Board Theme and Dice Skin implementations use trusted IDs mapped to application-owned CSS classes/tokens rather than accepting runtime styles from account data.
+Prefer a curated asset/specification model with known fields and application-controlled rendering. Current Board Theme, Dice Skin and Reaction Pack implementations use trusted IDs mapped to application-owned CSS classes/tokens/content rather than accepting runtime styles or remote assets from account data.
 
 The Board Scene geometry must be available immediately. Cosmetic loading failure must fall back to `Default` without preventing a match from starting.
 
@@ -214,7 +218,7 @@ A cosmetic is not allowed to require:
 - additional scrolling;
 - a second mobile/desktop board implementation.
 
-Decorative content must clip or adapt inside the presentation bounds provided by the Board Scene.
+Decorative content must clip or adapt inside the presentation bounds provided by the Board Scene. Reaction Packs must remain within the existing picker and brief reaction-message bounds rather than growing gameplay layout.
 
 ## Competitive-readability requirements
 
@@ -265,15 +269,15 @@ This rule is especially important for Long Nardy, where large stacks are normal 
 
 ## Scope after Update 1
 
-Store screens, Profile Frame purchasing, permanent ownership/equipment persistence and backend ownership tables are no longer future requirements: Update 1 implemented that vertical slice. PR 2 extended it to Checker Sets without changing Board Scene geometry; PR 3 extended the same trusted path to Dice Skins without changing dice authority or geometry; PR 4 extends it to hybrid Board Themes without changing board geometry or game state.
+Store screens, Profile Frame purchasing, permanent ownership/equipment persistence and backend ownership tables are no longer future requirements: Update 1 implemented that vertical slice. PR 2 extended it to Checker Sets without changing Board Scene geometry; PR 3 extended the same trusted path to Dice Skins without changing dice authority or geometry; PR 4 extended it to hybrid Board Themes without changing board geometry or game state; PR 5 extends it to Reaction Packs without changing realtime reaction semantics or gameplay state.
 
 This Board Scene architecture still does not require prematurely implementing:
 
-- non-default Reaction Packs;
-- a broad Board Theme, Dice Skin or Checker Set catalog;
+- a broad Board Theme, Dice Skin, Checker Set or Reaction Pack catalog;
+- user-uploaded or remotely hosted cosmetic content;
 - Telegram Stars;
 - rarity economy;
 - a large cosmetic catalog;
 - arbitrary match-protocol changes solely to make speculative skins usable.
 
-Future cosmetic expansion must reuse this architecture rather than changing geometry, hitboxes, legal moves, checker identity, dice authority or game state.
+Future cosmetic expansion must reuse this architecture rather than changing geometry, hitboxes, legal moves, checker identity, dice authority, reaction semantics or game state.

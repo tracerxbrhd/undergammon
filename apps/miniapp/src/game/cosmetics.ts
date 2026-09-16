@@ -5,6 +5,8 @@ import type {
   DiceSkinId,
   EquippedCosmetics,
   ProfileFrameId,
+  Reaction,
+  ReactionPackId,
 } from '@undergammon/protocol';
 
 export type DefaultCosmeticId = 'default';
@@ -14,11 +16,15 @@ interface CosmeticPresentation {
   readonly className: string;
 }
 
+export interface ReactionVisual {
+  readonly content: string;
+}
+
 export type BoardThemePresentation = CosmeticPresentation;
 export type CheckerSetPresentation = CosmeticPresentation;
 export type DiceSkinPresentation = CosmeticPresentation;
 export type ProfileFramePresentation = CosmeticPresentation;
-export type ReactionPackPresentation = CosmeticPresentation;
+export type ReactionPackPresentation = CosmeticPresentation & { readonly id: ReactionPackId };
 
 export interface PlayerCosmeticPresentation<T extends CosmeticPresentation> {
   readonly ownerSeat: PlayerId;
@@ -44,6 +50,7 @@ export interface ResolvedMatchCosmetics {
   };
   readonly reactions: {
     readonly localPack: PlayerCosmeticPresentation<ReactionPackPresentation>;
+    readonly opponentPack: PlayerCosmeticPresentation<ReactionPackPresentation>;
   };
 }
 
@@ -91,6 +98,27 @@ const profileFrames: Record<ProfileFrameId, ProfileFramePresentation> = {
   },
 };
 
+const reactionPacks: Record<ReactionPackId, ReactionPackPresentation> = {
+  default: defaultPresentations.reactionPack,
+  neon_reactions: {
+    id: 'neon_reactions',
+    className: 'reaction-pack-neon',
+  },
+};
+
+const reactionVisuals: Record<ReactionPackId, Record<Reaction, ReactionVisual>> = {
+  default: {
+    WAVE: { content: '👋' },
+    NICE: { content: '👏' },
+    GG: { content: '🤝' },
+  },
+  neon_reactions: {
+    WAVE: { content: 'HI!' },
+    NICE: { content: 'NICE!' },
+    GG: { content: 'GG!' },
+  },
+};
+
 export function resolveBoardTheme(id: BoardThemeId): BoardThemePresentation {
   return boardThemes[id];
 }
@@ -105,6 +133,14 @@ export function resolveDiceSkin(id: DiceSkinId): DiceSkinPresentation {
 
 export function resolveProfileFrame(id: ProfileFrameId): ProfileFramePresentation {
   return profileFrames[id];
+}
+
+export function resolveReactionPack(id: ReactionPackId): ReactionPackPresentation {
+  return reactionPacks[id];
+}
+
+export function resolveReactionVisual(packId: ReactionPackId, reaction: Reaction): ReactionVisual {
+  return reactionVisuals[packId][reaction];
 }
 
 function withOwner<T extends CosmeticPresentation>(
@@ -169,7 +205,14 @@ export function resolveMatchCosmetics({
       ),
     },
     reactions: {
-      localPack: withOwner(localSeat, defaultPresentations.reactionPack),
+      localPack: withOwner(
+        localSeat,
+        resolveReactionPack(players?.[localSeat]?.cosmetics?.reactionPack ?? 'default'),
+      ),
+      opponentPack: withOwner(
+        opponentSeat,
+        resolveReactionPack(players?.[opponentSeat]?.cosmetics?.reactionPack ?? 'default'),
+      ),
     },
   };
 }

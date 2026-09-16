@@ -39,6 +39,13 @@ export const cosmeticDefinitions: readonly CosmeticDefinition[] = [
     priceCoins: 300,
     purchasable: true,
   },
+  { id: 'default', slot: 'REACTION_PACK', purchasable: false },
+  {
+    id: 'neon_reactions',
+    slot: 'REACTION_PACK',
+    priceCoins: 350,
+    purchasable: true,
+  },
 ];
 
 export const purchasableCosmetics: readonly PurchasableCosmeticDefinition[] =

@@ -16,6 +16,7 @@ const storeSlots: readonly CosmeticSlot[] = [
   'CHECKER_SET',
   'DICE_SKIN',
   'BOARD_THEME',
+  'REACTION_PACK',
 ];
 
 function productKey(product: Pick<StoreProduct, 'slot' | 'cosmeticId'>): string {

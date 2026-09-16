@@ -2,6 +2,8 @@ import { z } from 'zod';
 import type { GameState, Move } from '@undergammon/game-engine';
 export const rulesetSchema = z.enum(['LONG_NARDY', 'BACKGAMMON']);
 export const modeSchema = z.enum(['CASUAL', 'RANKED', 'PRIVATE']);
+export const reactionSchema = z.enum(['WAVE', 'NICE', 'GG']);
+export type Reaction = z.infer<typeof reactionSchema>;
 export const moveSchema = z
   .object({
     from: z.union([z.number().int().min(0).max(23), z.literal('BAR')]),
@@ -17,7 +19,7 @@ export const commandSchema = z
     stateVersion: z.number().int().nonnegative(),
     type: z.enum(['OPEN', 'ROLL', 'TURN', 'SURRENDER', 'REACTION']),
     moves: z.array(moveSchema).max(4).optional(),
-    reaction: z.enum(['WAVE', 'NICE', 'GG']).optional(),
+    reaction: reactionSchema.optional(),
   })
   .strict();
 export type Command = z.infer<typeof commandSchema>;
@@ -28,6 +30,7 @@ export const cosmeticSlotSchema = z.enum([
   'CHECKER_SET',
   'DICE_SKIN',
   'BOARD_THEME',
+  'REACTION_PACK',
 ]);
 export type CosmeticSlot = z.infer<typeof cosmeticSlotSchema>;
 export const profileFrameIdSchema = z.enum([
@@ -42,7 +45,9 @@ export const diceSkinIdSchema = z.enum(['default', 'obsidian_dice']);
 export type DiceSkinId = z.infer<typeof diceSkinIdSchema>;
 export const boardThemeIdSchema = z.enum(['default', 'midnight_board']);
 export type BoardThemeId = z.infer<typeof boardThemeIdSchema>;
-export type CosmeticId = ProfileFrameId | CheckerSetId | DiceSkinId | BoardThemeId;
+export const reactionPackIdSchema = z.enum(['default', 'neon_reactions']);
+export type ReactionPackId = z.infer<typeof reactionPackIdSchema>;
+export type CosmeticId = ProfileFrameId | CheckerSetId | DiceSkinId | BoardThemeId | ReactionPackId;
 export interface EquippedCosmetics {
   profileFrame: ProfileFrameId;
   /** Missing means Default, including snapshots written before Checker Sets existed. */
@@ -51,6 +56,8 @@ export interface EquippedCosmetics {
   diceSkin?: DiceSkinId;
   /** Missing means Default, including snapshots written before Board Themes existed. */
   boardTheme?: BoardThemeId;
+  /** Missing means Default, including snapshots written before Reaction Packs existed. */
+  reactionPack?: ReactionPackId;
 }
 export interface OwnedCosmetic {
   cosmeticId: string;
@@ -108,7 +115,7 @@ export type ServerEvent =
     }
   | { protocolVersion: 1; type: 'ERROR'; code: string; commandId?: string }
   | { protocolVersion: 1; type: 'CONTROL_LOST' }
-  | { protocolVersion: 1; type: 'REACTION'; accountId: string; reaction: string }
+  | { protocolVersion: 1; type: 'REACTION'; accountId: string; reaction: Reaction }
   | { protocolVersion: 1; type: 'REFRESH' };
 export interface Profile {
   id: string;

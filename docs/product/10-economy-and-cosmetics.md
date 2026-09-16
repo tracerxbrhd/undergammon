@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and the multi-slot Profile Frame / Checker Set / Dice Skin / Board Theme Store and equipment vertical slices are implemented; broader cosmetic catalogs and Reaction Packs remain expansion scope.
+Accepted product decisions from interview question 10. The Season 0 soft-currency economy, Daily Reward and the multi-slot Profile Frame / Checker Set / Dice Skin / Board Theme / Reaction Pack Store and equipment vertical slices are implemented; broader cosmetic catalogs remain expansion scope.
 
 ## Currency
 
@@ -27,19 +27,20 @@ The implemented economy/cosmetics chain is:
 
 Current content/contracts are intentionally narrow:
 
-- functional cosmetic slots: `PROFILE_FRAME`, `CHECKER_SET`, `DICE_SKIN` and `BOARD_THEME`;
+- functional cosmetic slots: `PROFILE_FRAME`, `CHECKER_SET`, `DICE_SKIN`, `BOARD_THEME` and `REACTION_PACK`;
 - non-purchasable `Default` variants for every implemented slot;
 - Season 0 Tester Profile Frame, granted server-side for Season 0 participation;
 - Bronze Profile Frame, purchasable for 150 Coins;
 - Marble Checker Set, purchasable for 200 Coins;
 - Obsidian Dice, purchasable for 250 Coins;
 - Midnight Board, purchasable for 300 Coins;
+- Neon Reactions, purchasable for 350 Coins;
 - Store purchase does not auto-equip;
 - equipment is validated against backend ownership and slot compatibility;
 - Store ownership, purchase ledger references and equipment use `(slot, cosmeticId)` identity;
-- equipped Profile Frames, Checker Sets, Dice Skins and Board Themes are exposed through trusted account/match contracts and resolved by owner identity.
+- equipped Profile Frames, Checker Sets, Dice Skins, Board Themes and Reaction Packs are exposed through trusted account/match contracts and resolved by owner identity.
 
-Reaction Packs and a large cosmetic catalog remain future expansion work. The Board Scene presentation boundaries are intentionally owner-aware so future cosmetics do not require gameplay or geometry changes.
+A large cosmetic catalog remains future expansion work. The Board Scene and reaction presentation boundaries are intentionally owner-aware so future curated cosmetics do not require gameplay or geometry changes.
 
 ## Future Telegram Monetization
 
@@ -114,7 +115,7 @@ Accepted cosmetic categories include:
 - Reaction Pack;
 - future visual effects where appropriate.
 
-Profile Frame, Checker Set, Dice Skin and Board Theme are functional ownership/equipment slots. Each has an explicit `Default` fallback; the current non-default catalog remains deliberately small.
+Profile Frame, Checker Set, Dice Skin, Board Theme and Reaction Pack are functional ownership/equipment slots. Each has an explicit `Default` fallback; the current non-default catalog remains deliberately small.
 
 Product rules:
 
@@ -134,7 +135,7 @@ Buying or receiving a cosmetic does not auto-equip it. The item is added to the 
 
 ## Hybrid Match Presentation
 
-Match presentation combines owner-scoped cosmetics from both participants instead of treating cosmetics as a fully local-only skin. Profile Frames, Checker Sets, Dice Skins and Board Themes resolve from trusted equipment captured by authoritative account/match contracts.
+Match presentation combines owner-scoped cosmetics from both participants instead of treating cosmetics as a fully local-only skin. Profile Frames, Checker Sets, Dice Skins, Board Themes and Reaction Packs resolve from trusted equipment captured by authoritative account/match contracts.
 
 ### Board themes
 
@@ -179,7 +180,12 @@ Do not model a Board Theme as one global `board-theme-*` class for the whole mat
 ### Profile cosmetics and reactions
 
 - Profile Frame belongs to its owner identity surface, while Checker Set belongs to the owner's physical checkers in a match.
-- Future avatar/reaction cosmetics remain personalized to their owner and visible to the opponent only where the product contract permits.
+- Reaction Pack belongs to the sending player identity. The local reaction picker uses the local player's equipped pack; an incoming reaction uses the sender's trusted pack captured in the match snapshot.
+- Realtime reaction semantics remain fixed to the application-defined `WAVE`, `NICE` and `GG` commands. A pack may change only how those semantics are presented.
+- `Default` uses the classic emoji presentation; Neon Reactions maps the same semantics to compact `HI!`, `NICE!` and `GG!` presentation.
+- Reaction Packs must remain non-blocking, brief and visually bounded away from gameplay-critical controls.
+- Muting opponent reactions remains an account/realtime behavior and is independent of which Reaction Pack either player has equipped.
+- Trusted pack IDs resolve only to bundled application-owned presentation. Remote URLs, arbitrary HTML, scripts and runtime CSS supplied by cosmetic data are not supported.
 
 ## Cosmetic Loading
 
@@ -208,7 +214,8 @@ The implemented Store is a simple persistent server-owned catalog. Current purch
 - Bronze Profile Frame for 150 Coins;
 - Marble Checker Set for 200 Coins;
 - Obsidian Dice for 250 Coins;
-- Midnight Board for 300 Coins.
+- Midnight Board for 300 Coins;
+- Neon Reactions for 350 Coins.
 
 Store principles remain:
 
@@ -221,7 +228,7 @@ Store principles remain:
 - purchased items are equipped separately from the player's Cosmetics collection;
 - exclusive seasonal/event cosmetics may show their acquisition source rather than a Coin price.
 
-The current Store groups implemented content into Profile Frames, Checker Sets, Dice Skins and Board Themes. Reactions must not be documented as completed Store content before they exist.
+The current Store groups implemented content into Profile Frames, Checker Sets, Dice Skins, Board Themes and Reaction Packs.
 
 ## Balancing
 

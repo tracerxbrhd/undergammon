@@ -1,0 +1,66 @@
+.reaction.reaction-pack-neon {
+  padding: 5px 8px;
+  border: 1px solid #d88cff66;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #251839e8, #452554e8);
+  color: #f6e9ff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 8px #d88cffaa;
+  box-shadow:
+    0 0 0 1px #ffffff12 inset,
+    0 0 14px #b653ff55;
+}
+
+.reaction-picker.reaction-pack-neon button {
+  min-width: 52px;
+  border-color: #d88cff55;
+  background: linear-gradient(145deg, #26183a, #4c285a);
+  color: #f6e9ff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 8px #d88cff99;
+  box-shadow:
+    inset 0 0 0 1px #ffffff10,
+    0 0 12px #a744e733;
+}
+
+.reaction-pack-preview {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface-elevated);
+}
+
+.reaction-pack-preview > span {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  height: 25px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.reaction-pack-preview.reaction-pack-neon {
+  background: linear-gradient(145deg, #1d162b, #392044);
+  box-shadow: inset 0 0 0 1px #d88cff22;
+}
+
+.reaction-pack-preview.reaction-pack-neon > span {
+  border: 1px solid #d88cff55;
+  background: #452554cc;
+  color: #f6e9ff;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 7px #d88cffaa;
+}
