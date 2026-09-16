@@ -3,12 +3,14 @@ import {
   checkerSetIdSchema,
   diceSkinIdSchema,
   profileFrameIdSchema,
+  reactionPackIdSchema,
   type CosmeticSlot,
 } from '@undergammon/protocol';
 import { BoardThemePreview } from './BoardThemePreview';
 import { CheckerSetPreview } from './CheckerSetPreview';
 import { DiceSkinPreview } from './DiceSkinPreview';
 import { ProfileFramePreview } from './ProfileFramePreview';
+import { ReactionPackPreview } from './ReactionPackPreview';
 
 export function CosmeticPreview({ slot, cosmeticId }: { slot: CosmeticSlot; cosmeticId: string }) {
   switch (slot) {
@@ -30,6 +32,11 @@ export function CosmeticPreview({ slot, cosmeticId }: { slot: CosmeticSlot; cosm
     case 'BOARD_THEME': {
       const parsed = boardThemeIdSchema.safeParse(cosmeticId);
       if (parsed.success) return <BoardThemePreview cosmeticId={parsed.data} />;
+      break;
+    }
+    case 'REACTION_PACK': {
+      const parsed = reactionPackIdSchema.safeParse(cosmeticId);
+      if (parsed.success) return <ReactionPackPreview cosmeticId={parsed.data} />;
       break;
     }
     default: {
