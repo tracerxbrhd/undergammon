@@ -29,19 +29,24 @@ Update 1 is implemented and deployed. Its functional chain is:
 
 ## Implemented but requiring more tester feedback
 
-PR 2 is implemented in this change and covered by repository verification, but is not production-verified until it is merged and deployed. It adds:
+PR 2 is merged into `main` and adds the multi-slot cosmetics foundation plus the first Checker Set vertical slice. Its post-merge production/device verification remains separate from the repository-level implementation claim.
 
-- Marble Checker Set as a second purchasable cosmetic type;
-- multi-slot cosmetic identity using `(slot, cosmeticId)` across Store ownership, purchase references and equipment;
-- independent Profile Frame / Checker Set equipment and `Default` fallback;
-- owner-aware match presentation of equipped Checker Sets, including different sets for both participants;
-- a reserved `DICE_SKIN` application slot with `Default` as its only current content.
+PR 3 is implemented in this change and adds:
+
+- Obsidian Dice as the first purchasable Dice Skin, priced at 250 Coins;
+- `DICE_SKIN` as a functional Store, ownership and equipment slot alongside Profile Frames and Checker Sets;
+- independent Dice Skin equipment with `Default` fallback and no purchase auto-equip;
+- trusted equipped Dice Skins captured in new match snapshots;
+- owner-aware hybrid match presentation where one visible die uses the local player's Dice Skin and the other uses the opponent's Dice Skin;
+- application-controlled CSS presentation that preserves fixed dice geometry and high-contrast pips.
+
+PR 3 does not change dice generation, authoritative roll values, game-engine rules, move legality or BoardScene interaction geometry. It is not production-verified until it is merged, deployed and exercised on real Telegram clients.
 
 The core production path works, but broader feedback is still useful for:
 
 - Android/iOS Telegram WebView and compact-viewport coverage beyond the devices already used for acceptance;
 - Store/Cosmetics interaction polish and visual feedback;
-- Profile Frame and Checker Set presentation across unusual viewport sizes and real-device match sessions;
+- Profile Frame, Checker Set and Dice Skin presentation across unusual viewport sizes and real-device match sessions;
 - less frequently exercised admin, account-lifecycle and notification/recovery paths;
 - localization/editorial polish outside the main RU/EN player journey.
 
@@ -49,8 +54,8 @@ These are not claims that the underlying features are absent; they are areas whe
 
 ## Partial / known technical debt
 
-- Cosmetics remain intentionally narrow: `PROFILE_FRAME` and `CHECKER_SET` are functional slots. `DICE_SKIN` is reserved in the application contract but has only `Default`; Board Themes and Reaction Packs are not implemented content yet.
-- `resolveMatchCosmetics` / `ResolvedMatchCosmetics` and BoardScene owner-aware hooks resolve trusted Profile Frames and per-owner Checker Sets. Board Theme and Dice Skin presentation currently fall back to `Default`.
+- Cosmetics remain intentionally narrow: `PROFILE_FRAME`, `CHECKER_SET` and `DICE_SKIN` are functional slots with one focused non-default Store item each where applicable. Board Themes and Reaction Packs are not implemented content yet.
+- `resolveMatchCosmetics` / `ResolvedMatchCosmetics` and BoardScene owner-aware hooks resolve trusted Profile Frames, per-owner Checker Sets and per-owner Dice Skins. Board Theme and Reaction Pack presentation still fall back to `Default`.
 - Primary navigation is correctly five-tab and configuration-driven, but the current glyphs are Unicode presentation shortcuts rather than the intended production icon set.
 - The backend is a single process and live socket routing is process-local. Do not run multiple server replicas with the current realtime architecture.
 - The transaction advisory-lock strategy deliberately prioritizes correctness over throughput; broad load/capacity testing has not been performed.
@@ -72,7 +77,7 @@ The following are accepted deferrals rather than current defects:
 - multi-instance realtime routing;
 - automated off-site backup work;
 - native App Store / Google Play standalone clients;
-- broad Board Theme / Dice Skin / Reaction Pack catalog expansion and a larger Checker Set catalog beyond the current focused vertical slice.
+- broad Board Theme / Dice Skin / Reaction Pack catalog expansion and a larger Checker Set catalog beyond the current focused vertical slices.
 
 ## Deployment / operational notes
 
@@ -97,8 +102,10 @@ Update 1 final verification for PR #11 passed the repository's production verifi
 
 The repository CI definition runs the same core build/lint/format/typecheck/test/E2E/audit/Compose checks against an isolated PostgreSQL service. Tests and exact local commands are documented in [`docs/development/README.md`](docs/development/README.md). Integration tests truncate their test database: never point `TEST_DATABASE_URL` at production data.
 
+PR 3 adds focused catalog/resolver/integration coverage plus an end-to-end Obsidian Dice purchase -> equip -> two-player match-presentation scenario. Its verification result should be taken from the PR CI run rather than inferred from this document.
+
 ## Current release position
 
-There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2 adds the multi-slot Checker Set vertical slice pending deployment/real-device verification after merge.
+There is no known documentation-level reason to treat real Telegram setup, production deployment, Daily Reward, Store or permanent Season 0 cosmetic ownership as future release blockers. Profile Frame functionality is production-verified; PR 2 is merged; PR 3 adds the focused Dice Skin vertical slice pending review, merge, deployment and real-device verification.
 
 Season 0 remains an Open Beta. Production verification does not imply broad scale/load validation or completion of every deferred product specification.
