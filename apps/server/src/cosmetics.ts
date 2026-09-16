@@ -128,6 +128,7 @@ export async function purchaseCosmetic(
     : legacyPurchasableCosmeticDefinition(cosmeticId);
   if (!product) throw new Error('COSMETIC_NOT_PURCHASABLE');
   return transaction(pool, async (db) => {
+    await db.query('SELECT 1 FROM accounts WHERE id=$1 FOR UPDATE', [accountId]);
     const owned = await rows(
       db,
       'SELECT 1 FROM cosmetic_ownership WHERE account_id=$1 AND slot=$2 AND cosmetic_id=$3',
