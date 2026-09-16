@@ -38,6 +38,13 @@ class FakeWebSocket {
 }
 
 const matchId = '11111111-1111-4111-8111-111111111111';
+const originalWebSocket = Object.getOwnPropertyDescriptor(globalThis, 'WebSocket');
+const originalLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
+
+function restoreGlobal(name: 'WebSocket' | 'location', descriptor?: PropertyDescriptor) {
+  if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+  else Reflect.deleteProperty(globalThis, name);
+}
 
 function snapshot(commandId?: string) {
   return {
@@ -68,6 +75,8 @@ describe('connectMatch session control', () => {
   });
 
   afterEach(() => {
+    restoreGlobal('WebSocket', originalWebSocket);
+    restoreGlobal('location', originalLocation);
     vi.useRealTimers();
   });
 
