@@ -47,12 +47,7 @@ export const boardThemeIdSchema = z.enum(['default', 'midnight_board']);
 export type BoardThemeId = z.infer<typeof boardThemeIdSchema>;
 export const reactionPackIdSchema = z.enum(['default', 'neon_reactions']);
 export type ReactionPackId = z.infer<typeof reactionPackIdSchema>;
-export type CosmeticId =
-  | ProfileFrameId
-  | CheckerSetId
-  | DiceSkinId
-  | BoardThemeId
-  | ReactionPackId;
+export type CosmeticId = ProfileFrameId | CheckerSetId | DiceSkinId | BoardThemeId | ReactionPackId;
 export interface EquippedCosmetics {
   profileFrame: ProfileFrameId;
   /** Missing means Default, including snapshots written before Checker Sets existed. */
