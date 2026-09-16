@@ -38,19 +38,10 @@ class FakeWebSocket {
 }
 
 const matchId = '11111111-1111-4111-8111-111111111111';
-const originalWebSocket = Object.getOwnPropertyDescriptor(
-  globalThis,
-  'WebSocket',
-);
-const originalLocation = Object.getOwnPropertyDescriptor(
-  globalThis,
-  'location',
-);
+const originalWebSocket = Object.getOwnPropertyDescriptor(globalThis, 'WebSocket');
+const originalLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
 
-function restoreGlobal(
-  name: 'WebSocket' | 'location',
-  descriptor?: PropertyDescriptor,
-) {
+function restoreGlobal(name: 'WebSocket' | 'location', descriptor?: PropertyDescriptor) {
   if (descriptor) Object.defineProperty(globalThis, name, descriptor);
   else Reflect.deleteProperty(globalThis, name);
 }
@@ -66,8 +57,7 @@ function snapshot(commandId?: string) {
 }
 
 function commandId(socket: FakeWebSocket, index = socket.sent.length - 1) {
-  return (JSON.parse(socket.sent[index] ?? '{}') as { commandId?: string })
-    .commandId;
+  return (JSON.parse(socket.sent[index] ?? '{}') as { commandId?: string }).commandId;
 }
 
 describe('connectMatch session control', () => {
@@ -90,84 +80,78 @@ describe('connectMatch session control', () => {
     vi.useRealTimers();
   });
 
-  it(
-    'marks control owned only after the matching OPEN snapshot acknowledgement',
-    () => {
-      const controlStates: MatchControlState[] = [];
-      const connection = connectMatch(
-        matchId,
-        () => undefined,
-        () => undefined,
-        (state) => {
-          controlStates.push(state);
-        },
-      );
-      const socket = FakeWebSocket.instances[0]!;
+  it('marks control owned only after the matching OPEN snapshot acknowledgement', () => {
+    const controlStates: MatchControlState[] = [];
+    const connection = connectMatch(
+      matchId,
+      () => undefined,
+      () => undefined,
+      (state) => {
+        controlStates.push(state);
+      },
+    );
+    const socket = FakeWebSocket.instances[0]!;
 
-      socket.open();
-      const initialOpen = commandId(socket);
-      expect(initialOpen).toBeTruthy();
-      expect(controlStates).toEqual([]);
+    socket.open();
+    const initialOpen = commandId(socket);
+    expect(initialOpen).toBeTruthy();
+    expect(controlStates).toEqual([]);
 
-      socket.message(snapshot('22222222-2222-4222-8222-222222222222'));
-      expect(controlStates).toEqual([]);
+    socket.message(snapshot('22222222-2222-4222-8222-222222222222'));
+    expect(controlStates).toEqual([]);
 
-      socket.message(snapshot(initialOpen));
-      expect(controlStates).toEqual(['owned']);
+    socket.message(snapshot(initialOpen));
+    expect(controlStates).toEqual(['owned']);
 
-      socket.message({ protocolVersion: 1, type: 'CONTROL_LOST' });
-      expect(controlStates).toEqual(['owned', 'lost']);
+    socket.message({ protocolVersion: 1, type: 'CONTROL_LOST' });
+    expect(controlStates).toEqual(['owned', 'lost']);
 
-      expect(connection.requestControl()).toBe(true);
-      expect(controlStates).toEqual(['owned', 'lost', 'requesting']);
-      const takeoverOpen = commandId(socket);
-      socket.message(snapshot(takeoverOpen));
-      expect(controlStates).toEqual(['owned', 'lost', 'requesting', 'owned']);
+    expect(connection.requestControl()).toBe(true);
+    expect(controlStates).toEqual(['owned', 'lost', 'requesting']);
+    const takeoverOpen = commandId(socket);
+    socket.message(snapshot(takeoverOpen));
+    expect(controlStates).toEqual(['owned', 'lost', 'requesting', 'owned']);
 
-      connection.close();
-    },
-  );
+    connection.close();
+  });
 
-  it(
-    'refuses offline takeover and retries an interrupted takeover after reconnect',
-    () => {
-      const controlStates: MatchControlState[] = [];
-      const connection = connectMatch(
-        matchId,
-        () => undefined,
-        () => undefined,
-        (state) => {
-          controlStates.push(state);
-        },
-      );
-      const first = FakeWebSocket.instances[0]!;
+  it('refuses offline takeover and retries an interrupted takeover after reconnect', () => {
+    const controlStates: MatchControlState[] = [];
+    const connection = connectMatch(
+      matchId,
+      () => undefined,
+      () => undefined,
+      (state) => {
+        controlStates.push(state);
+      },
+    );
+    const first = FakeWebSocket.instances[0]!;
 
-      first.open();
-      first.message(snapshot(commandId(first)));
-      first.message({ protocolVersion: 1, type: 'CONTROL_LOST' });
-      first.close();
+    first.open();
+    first.message(snapshot(commandId(first)));
+    first.message({ protocolVersion: 1, type: 'CONTROL_LOST' });
+    first.close();
 
-      expect(connection.requestControl()).toBe(false);
-      expect(controlStates.at(-1)).toBe('lost');
+    expect(connection.requestControl()).toBe(false);
+    expect(controlStates.at(-1)).toBe('lost');
 
-      vi.advanceTimersByTime(500);
-      const second = FakeWebSocket.instances[1]!;
-      second.open();
-      expect(second.sent).toHaveLength(0);
+    vi.advanceTimersByTime(500);
+    const second = FakeWebSocket.instances[1]!;
+    second.open();
+    expect(second.sent).toHaveLength(0);
 
-      expect(connection.requestControl()).toBe(true);
-      expect(controlStates.at(-1)).toBe('requesting');
-      expect(second.sent).toHaveLength(1);
-      second.close();
+    expect(connection.requestControl()).toBe(true);
+    expect(controlStates.at(-1)).toBe('requesting');
+    expect(second.sent).toHaveLength(1);
+    second.close();
 
-      vi.advanceTimersByTime(500);
-      const third = FakeWebSocket.instances[2]!;
-      third.open();
-      expect(third.sent).toHaveLength(1);
-      third.message(snapshot(commandId(third)));
-      expect(controlStates.at(-1)).toBe('owned');
+    vi.advanceTimersByTime(500);
+    const third = FakeWebSocket.instances[2]!;
+    third.open();
+    expect(third.sent).toHaveLength(1);
+    third.message(snapshot(commandId(third)));
+    expect(controlStates.at(-1)).toBe('owned');
 
-      connection.close();
-    },
-  );
+    connection.close();
+  });
 });
