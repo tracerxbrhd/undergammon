@@ -143,5 +143,29 @@ describe.each(['LONG_NARDY', 'BACKGAMMON'] satisfies GameRuleset[])(
         ),
       ).toEqual(['dice-skin-obsidian', 'dice-skin-obsidian']);
     });
+
+    it('switches both dice to the other active player presentation after the opening turn', () => {
+      const opening = openGame(initialGame(ruleset), [6, 2]);
+      const openingTurn = legalTurns(opening)[0];
+      if (!openingTurn) throw new Error('Expected a legal opening turn');
+      const waitingForB = commitTurn(opening, openingTurn);
+      const rolledByB = rollGame(waitingForB, [4, 2]);
+
+      expect(rolledByB.activePlayer).toBe('B');
+      expect(
+        resolveDicePresentationClasses(
+          rolledByB,
+          'A',
+          resolveMatchCosmetics({ localSeat: 'A', players }),
+        ),
+      ).toEqual(['dice-skin-default', 'dice-skin-default']);
+      expect(
+        resolveDicePresentationClasses(
+          rolledByB,
+          'B',
+          resolveMatchCosmetics({ localSeat: 'B', players }),
+        ),
+      ).toEqual(['dice-skin-default', 'dice-skin-default']);
+    });
   },
 );
