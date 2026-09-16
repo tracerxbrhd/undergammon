@@ -56,14 +56,16 @@
   }
 
   .reaction-picker {
-    left: 50%;
+    left: 0;
     bottom: 64px;
-    max-width: calc(100vw - 16px);
-    transform: translateX(-50%);
+    width: 100%;
+    max-width: 100%;
+    transform: none;
   }
 
   .reaction-picker button {
-    min-width: 44px;
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .control-overlay,
