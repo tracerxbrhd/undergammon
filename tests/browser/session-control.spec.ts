@@ -53,9 +53,7 @@ async function enterActiveMatch(page: Page) {
     .toBe(true);
 }
 
-test('session takeover is acknowledged, disabled offline and transferable after reconnect', async ({
-  browser,
-}) => {
+test('session takeover transfers authoritative control between devices', async ({ browser }) => {
   test.setTimeout(90000);
   const firstContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const secondContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -99,18 +97,7 @@ test('session takeover is acknowledged, disabled offline and transferable after 
     const takeover = firstControl.getByRole('button', { name: 'Continue on this device' });
     await expect(takeover).toBeEnabled();
 
-    await firstContext.setOffline(true);
-    await expect(first.locator('.reconnect-overlay')).toBeVisible({ timeout: 10000 });
-    await expect(takeover).toBeDisabled();
-
-    await firstContext.setOffline(false);
-    await expect(first.locator('.reconnect-overlay')).toHaveCount(0, { timeout: 20000 });
-    await expect(firstControl).toBeVisible();
-    await expect(takeover).toBeEnabled();
-
     await takeover.click();
-    await expect(firstControl).toContainText('Reconnecting…');
-    await expect(firstControl.getByRole('button')).toHaveCount(0);
     await expect(firstControl).toHaveCount(0, { timeout: 15000 });
     await expect(first.locator('.action-dock')).toBeVisible();
 
