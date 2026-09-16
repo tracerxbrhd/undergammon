@@ -7,6 +7,7 @@ import {
   type PlayerId,
 } from '@undergammon/game-engine';
 import type { ResolvedMatchCosmetics } from './cosmetics';
+import '../styles/board-themes.css';
 import '../styles/dice-skins.css';
 
 function hasBar(board: BoardState): board is BackgammonBoardState {
@@ -48,6 +49,36 @@ export function resolveBoardPointPresentation(
     }
     return { index, physical, point: index, owner, amount };
   });
+}
+
+/**
+ * Board regions are owned by authoritative physical seat identity. This stays
+ * stable across rulesets while physicalPoint() handles viewer perspective.
+ */
+export function boardThemeOwnerForPhysicalPoint(physical: number): PlayerId {
+  return physical < 12 ? 'A' : 'B';
+}
+
+export function resolveBoardThemePresentationClass(
+  physical: number,
+  seat: PlayerId,
+  cosmetics: ResolvedMatchCosmetics,
+): string {
+  const owner = boardThemeOwnerForPhysicalPoint(physical);
+  return owner === seat
+    ? cosmetics.board.localTheme.presentation.className
+    : cosmetics.board.opponentTheme.presentation.className;
+}
+
+export function resolveBoardThemeRegionClasses(
+  game: GameState,
+  seat: PlayerId,
+  cosmetics: ResolvedMatchCosmetics,
+): Readonly<{ top: string; bottom: string }> {
+  return {
+    top: resolveBoardThemePresentationClass(physicalPoint(game, seat, 0), seat, cosmetics),
+    bottom: resolveBoardThemePresentationClass(physicalPoint(game, seat, 12), seat, cosmetics),
+  };
 }
 
 export function resolveDicePresentationClasses(
@@ -100,6 +131,7 @@ export function BoardScene({
   const opponent: PlayerId = seat === 'A' ? 'B' : 'A';
   const points = resolveBoardPointPresentation(game, board, seat);
   const diceClasses = resolveDicePresentationClasses(game, seat, cosmetics);
+  const boardThemeRegions = resolveBoardThemeRegionClasses(game, seat, cosmetics);
   return (
     <div
       className="board-scene"
@@ -107,6 +139,15 @@ export function BoardScene({
       data-opponent-board-theme={cosmetics.board.opponentTheme.presentation.id}
     >
       <div className="board" aria-label={boardLabel}>
+        <span
+          className={`board-theme-region board-theme-region-top ${boardThemeRegions.top}`}
+          aria-hidden="true"
+        />
+        <span className="board-theme-shared" aria-hidden="true" />
+        <span
+          className={`board-theme-region board-theme-region-bottom ${boardThemeRegions.bottom}`}
+          aria-hidden="true"
+        />
         {points.map(({ index, physical, point, owner, amount }, position) => {
           const source = next.some((move) => move.from === point);
           const destination = next.some((move) => move.from === selected && move.to === point);
@@ -114,6 +155,7 @@ export function BoardScene({
             owner === seat
               ? cosmetics.checkers.localSet.presentation.className
               : cosmetics.checkers.opponentSet.presentation.className;
+          const boardThemeClass = resolveBoardThemePresentationClass(physical, seat, cosmetics);
           const isRecent =
             recent &&
             ((recent.move.to < 24 &&
@@ -123,7 +165,7 @@ export function BoardScene({
           return (
             <button
               key={index}
-              className={`point ${position < 12 ? 'top' : 'bottom'} ${position % 2 ? 'dark' : 'light'} ${source ? 'source' : ''} ${destination ? 'destination' : ''} ${selected === point ? 'selected' : ''} ${isRecent ? 'recent' : ''}`}
+              className={`point ${boardThemeClass} ${position < 12 ? 'top' : 'bottom'} ${position % 2 ? 'dark' : 'light'} ${source ? 'source' : ''} ${destination ? 'destination' : ''} ${selected === point ? 'selected' : ''} ${isRecent ? 'recent' : ''}`}
               onClick={() => onSelect(point)}
               disabled={!canDraft || (!source && !destination)}
               aria-label={`${point + 1}: ${amount}`}
