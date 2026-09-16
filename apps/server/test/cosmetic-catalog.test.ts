@@ -11,8 +11,10 @@ describe('cosmetic catalog identity', () => {
     expect(cosmeticDefinition('CHECKER_SET', 'default')?.slot).toBe('CHECKER_SET');
     expect(cosmeticDefinition('DICE_SKIN', 'default')?.slot).toBe('DICE_SKIN');
     expect(cosmeticDefinition('BOARD_THEME', 'default')?.slot).toBe('BOARD_THEME');
+    expect(cosmeticDefinition('REACTION_PACK', 'default')?.slot).toBe('REACTION_PACK');
     expect(cosmeticKey('PROFILE_FRAME', 'default')).not.toBe(cosmeticKey('CHECKER_SET', 'default'));
     expect(cosmeticKey('DICE_SKIN', 'default')).not.toBe(cosmeticKey('BOARD_THEME', 'default'));
+    expect(cosmeticKey('BOARD_THEME', 'default')).not.toBe(cosmeticKey('REACTION_PACK', 'default'));
   });
 
   it('requires the exact slot for purchasable checker content', () => {
@@ -40,5 +42,14 @@ describe('cosmetic catalog identity', () => {
       priceCoins: 300,
     });
     expect(purchasableCosmeticDefinition('DICE_SKIN', 'midnight_board')).toBeUndefined();
+  });
+
+  it('requires the exact slot for purchasable Reaction Pack content', () => {
+    expect(purchasableCosmeticDefinition('REACTION_PACK', 'neon_reactions')).toMatchObject({
+      slot: 'REACTION_PACK',
+      id: 'neon_reactions',
+      priceCoins: 350,
+    });
+    expect(purchasableCosmeticDefinition('BOARD_THEME', 'neon_reactions')).toBeUndefined();
   });
 });
