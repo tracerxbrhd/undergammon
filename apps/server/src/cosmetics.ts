@@ -7,7 +7,7 @@ import type {
   StoreProduct,
   StorePurchaseResult,
 } from '@undergammon/protocol';
-import { checkerSetIdSchema, diceSkinIdSchema, profileFrameIdSchema } from '@undergammon/protocol';
+import { checkerSetIdSchema, profileFrameIdSchema } from '@undergammon/protocol';
 import { rows, transaction, type Db } from './db.js';
 import { applyCoins } from './economy.js';
 import {
@@ -34,11 +34,9 @@ export async function equippedCosmetics(
   const bySlot = new Map(equipped.map((item) => [item.slot, item.cosmetic_id]));
   const profileFrame = profileFrameIdSchema.safeParse(bySlot.get('PROFILE_FRAME') ?? 'default');
   const checkerSet = checkerSetIdSchema.safeParse(bySlot.get('CHECKER_SET'));
-  const diceSkin = diceSkinIdSchema.safeParse(bySlot.get('DICE_SKIN'));
   return {
     profileFrame: profileFrame.success ? profileFrame.data : ('default' satisfies ProfileFrameId),
     ...(checkerSet.success && checkerSet.data !== 'default' ? { checkerSet: checkerSet.data } : {}),
-    ...(diceSkin.success && diceSkin.data !== 'default' ? { diceSkin: diceSkin.data } : {}),
   };
 }
 
