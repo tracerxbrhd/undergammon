@@ -152,10 +152,6 @@ test('Midnight Board persists and is captured in a new match snapshot', async ({
     );
     expect(reloadedOwner?.cosmetics?.boardTheme).toBe('midnight_board');
   } finally {
-    await Promise.allSettled([
-      adminContext.close(),
-      ownerContext.close(),
-      opponentContext.close(),
-    ]);
+    await Promise.allSettled([adminContext.close(), ownerContext.close(), opponentContext.close()]);
   }
 });
