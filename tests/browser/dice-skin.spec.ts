@@ -1,6 +1,10 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { createHmac } from 'node:crypto';
 
+interface ErrorBody {
+  code?: string;
+}
+
 async function telegram(context: BrowserContext, id: number) {
   const params = new URLSearchParams({
     auth_date: String(Math.floor(Date.now() / 1000)),
@@ -49,14 +53,11 @@ async function noContest(adminPage: Page, matchId: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ matchId: id, reason: 'Dice Skin E2E cleanup' }),
     });
-    return {
-      ok: response.ok,
-      status: response.status,
-      body: (await response.json().catch(() => null)) as { code?: string } | null,
-    };
+    const body = (await response.json().catch(() => null)) as ErrorBody | null;
+    return { ok: response.ok, status: response.status, code: body?.code };
   }, matchId);
-  if (!result.ok && result.body?.code !== 'MATCH_ALREADY_FINISHED') {
-    throw new Error(`Could not clean up E2E match: ${result.status} ${result.body?.code ?? ''}`);
+  if (!result.ok && result.code !== 'MATCH_ALREADY_FINISHED') {
+    throw new Error(`Could not clean up E2E match: ${result.status} ${result.code ?? ''}`);
   }
 }
 
@@ -141,8 +142,14 @@ test('Obsidian Dice purchase, equip, and owner-aware match presentation', async 
     await noContest(adminPage, matchId);
     matchCleaned = true;
   } finally {
-    if (matchId && !matchCleaned) await noContest(adminPage, matchId).catch(() => undefined);
+    if (matchId && !matchCleaned) {
+      await noContest(adminPage, matchId).catch(() => undefined);
+    }
     await Promise.all([cancelQueue(ownerPage), cancelQueue(opponentPage)]);
-    await Promise.allSettled([adminContext.close(), ownerContext.close(), opponentContext.close()]);
+    await Promise.allSettled([
+      adminContext.close(),
+      ownerContext.close(),
+      opponentContext.close(),
+    ]);
   }
 });
