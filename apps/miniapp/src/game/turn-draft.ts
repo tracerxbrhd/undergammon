@@ -22,7 +22,9 @@ export function resolveDraftPointIntent(
   if (point === selected) return { selected: null, move: null };
 
   const destination =
-    selected === null ? undefined : next.find((move) => move.from === selected && move.to === point);
+    selected === null
+      ? undefined
+      : next.find((move) => move.from === selected && move.to === point);
   if (destination) return { selected: null, move: destination };
 
   if (next.some((move) => move.from === point)) return { selected: point, move: null };
