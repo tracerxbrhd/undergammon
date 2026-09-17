@@ -34,14 +34,7 @@
 
 .game-screen .board-scene {
   background:
-    linear-gradient(
-      100deg,
-      #00000028,
-      transparent 20%,
-      #ffffff12 48%,
-      transparent 76%,
-      #00000022
-    ),
+    linear-gradient(100deg, #00000028, transparent 20%, #ffffff12 48%, transparent 76%, #00000022),
     repeating-linear-gradient(90deg, #ffffff08 0 1px, transparent 1px 15px),
     linear-gradient(100deg, var(--wood-dark), var(--wood-mid), var(--wood-dark));
 }
@@ -55,22 +48,13 @@
 
 .board-theme-shared {
   background:
-    linear-gradient(
-      90deg,
-      #00000020,
-      transparent 22%,
-      #ffffff10 50%,
-      transparent 78%,
-      #00000020
-    ),
+    linear-gradient(90deg, #00000020, transparent 22%, #ffffff10 50%, transparent 78%, #00000020),
     repeating-linear-gradient(4deg, #ffffff06 0 1px, transparent 1px 14px),
     var(--board-field);
 }
 
 .point.destination .target {
-  box-shadow:
-    0 0 0 2px #101411aa,
-    0 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 2px #101411aa, 0 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 @keyframes reaction-feedback {
