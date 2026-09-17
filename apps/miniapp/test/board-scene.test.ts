@@ -38,6 +38,18 @@ describe.each(['LONG_NARDY', 'BACKGAMMON'] satisfies GameRuleset[])(
         ).toBe(15);
       },
     );
+
+    it.each(['A', 'B'] as const)(
+      'renders the local relative head on the lower half for seat %s',
+      (seat) => {
+        const game = initialGame(ruleset);
+        const points = resolveBoardPointPresentation(game, game.board, seat);
+
+        expect(points[12]?.point).toBe(0);
+        expect(points.slice(12).some(({ point }) => point === 0)).toBe(true);
+        expect(points.slice(0, 12).some(({ point }) => point === 0)).toBe(false);
+      },
+    );
   },
 );
 
@@ -111,14 +123,14 @@ describe.each(['LONG_NARDY', 'BACKGAMMON'] satisfies GameRuleset[])(
           'A',
           resolveMatchCosmetics({ localSeat: 'A', players }),
         ),
-      ).toEqual({ top: 'board-theme-midnight', bottom: 'board-theme-default' });
+      ).toEqual({ top: 'board-theme-default', bottom: 'board-theme-midnight' });
       expect(
         resolveBoardThemeRegionClasses(
           game,
           'B',
           resolveMatchCosmetics({ localSeat: 'B', players }),
         ),
-      ).toEqual({ top: 'board-theme-default', bottom: 'board-theme-midnight' });
+      ).toEqual({ top: 'board-theme-midnight', bottom: 'board-theme-default' });
     });
   },
 );
