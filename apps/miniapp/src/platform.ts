@@ -8,11 +8,11 @@ interface TelegramWebApp {
   safeAreaInset?: TelegramInsets;
   contentSafeAreaInset?: TelegramInsets;
   onEvent?(
-    event: 'viewportChanged' | 'safeAreaChanged' | 'contentSafeAreaChanged',
+    event: 'viewportChanged' | 'safeAreaChanged' | 'contentSafeAreaChanged' | 'activated',
     listener: () => void,
   ): void;
   offEvent?(
-    event: 'viewportChanged' | 'safeAreaChanged' | 'contentSafeAreaChanged',
+    event: 'viewportChanged' | 'safeAreaChanged' | 'contentSafeAreaChanged' | 'activated',
     listener: () => void,
   ): void;
 }
@@ -37,20 +37,44 @@ export interface PlatformLayout {
 }
 
 export const TELEGRAM_TOP_CHROME_FALLBACK = 72;
+const MAX_REPORTED_VIEWPORT_RATIO = 1.5;
+const MAX_TOP_INSET_RATIO = 0.4;
+
+export function effectiveStableViewportHeight(
+  reportedHeight: number | undefined,
+  fallbackHeight: number,
+): number {
+  const fallback = Number.isFinite(fallbackHeight) && fallbackHeight > 0 ? fallbackHeight : 1;
+  if (
+    reportedHeight === undefined ||
+    !Number.isFinite(reportedHeight) ||
+    reportedHeight <= 0 ||
+    reportedHeight > Math.max(320, fallback * MAX_REPORTED_VIEWPORT_RATIO)
+  ) {
+    return fallback;
+  }
+  return reportedHeight;
+}
 
 export function effectiveContentSafeTop(
   isTelegram: boolean,
   safeAreaTop: number,
   contentSafeAreaTop: number,
+  viewportHeight = Number.POSITIVE_INFINITY,
 ): number {
   const safeTop = Math.max(0, safeAreaTop);
   const contentTop = Math.max(0, contentSafeAreaTop);
+  const maximumPlausibleTop = Number.isFinite(viewportHeight)
+    ? Math.max(TELEGRAM_TOP_CHROME_FALLBACK, viewportHeight * MAX_TOP_INSET_RATIO)
+    : Number.POSITIVE_INFINITY;
+  const plausibleSafeTop = safeTop <= maximumPlausibleTop ? safeTop : 0;
+  const plausibleContentTop = contentTop <= maximumPlausibleTop ? contentTop : 0;
 
-  if (isTelegram && contentTop < TELEGRAM_TOP_CHROME_FALLBACK) {
-    return Math.max(safeTop, TELEGRAM_TOP_CHROME_FALLBACK);
+  if (isTelegram && plausibleContentTop < TELEGRAM_TOP_CHROME_FALLBACK) {
+    return Math.max(plausibleSafeTop, TELEGRAM_TOP_CHROME_FALLBACK);
   }
 
-  return Math.max(safeTop, contentTop);
+  return Math.max(plausibleSafeTop, plausibleContentTop);
 }
 declare global {
   interface Window {
@@ -76,6 +100,9 @@ export const platform = {
   subscribeLayout: (listener: (value: PlatformLayout) => void) => {
     const webApp = window.Telegram?.WebApp;
     let previous = '';
+    let lastStableViewportHeight = Math.max(1, window.innerHeight);
+    let resumeFrame: number | null = null;
+    let resumeTimer: number | null = null;
     const insets = (value?: TelegramInsets): LayoutInsets => ({
       top: value?.top ?? 0,
       right: value?.right ?? 0,
@@ -83,8 +110,17 @@ export const platform = {
       left: value?.left ?? 0,
     });
     const update = () => {
+      const fallbackViewportHeight =
+        Number.isFinite(window.innerHeight) && window.innerHeight > 0
+          ? window.innerHeight
+          : lastStableViewportHeight;
+      const stableViewportHeight = effectiveStableViewportHeight(
+        webApp?.viewportStableHeight,
+        fallbackViewportHeight,
+      );
+      lastStableViewportHeight = stableViewportHeight;
       const layout = {
-        stableViewportHeight: webApp?.viewportStableHeight ?? window.innerHeight,
+        stableViewportHeight,
         safeArea: insets(webApp?.safeAreaInset),
         contentSafeArea: insets(webApp?.contentSafeAreaInset),
       };
@@ -92,6 +128,7 @@ export const platform = {
         Boolean(webApp),
         layout.safeArea.top,
         layout.contentSafeArea.top,
+        stableViewportHeight,
       );
       const serialized = JSON.stringify(layout);
       if (serialized !== previous) {
@@ -99,16 +136,41 @@ export const platform = {
         listener(layout);
       }
     };
+    const resync = () => {
+      webApp?.expand();
+      update();
+      if (resumeFrame !== null) window.cancelAnimationFrame(resumeFrame);
+      resumeFrame = window.requestAnimationFrame(() => {
+        resumeFrame = null;
+        update();
+      });
+      if (resumeTimer !== null) window.clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => {
+        resumeTimer = null;
+        update();
+      }, 120);
+    };
+    const onVisibilityChange = () => {
+      if (!document.hidden) resync();
+    };
     update();
     window.addEventListener('resize', update);
+    window.addEventListener('focus', resync);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     webApp?.onEvent?.('viewportChanged', update);
     webApp?.onEvent?.('safeAreaChanged', update);
     webApp?.onEvent?.('contentSafeAreaChanged', update);
+    webApp?.onEvent?.('activated', resync);
     return () => {
       window.removeEventListener('resize', update);
+      window.removeEventListener('focus', resync);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       webApp?.offEvent?.('viewportChanged', update);
       webApp?.offEvent?.('safeAreaChanged', update);
       webApp?.offEvent?.('contentSafeAreaChanged', update);
+      webApp?.offEvent?.('activated', resync);
+      if (resumeFrame !== null) window.cancelAnimationFrame(resumeFrame);
+      if (resumeTimer !== null) window.clearTimeout(resumeTimer);
     };
   },
 };
