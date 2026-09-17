@@ -11,9 +11,12 @@ describe('effectiveContentSafeTop', () => {
     expect(effectiveContentSafeTop(true, 24, 96, 800)).toBe(96);
   });
 
-  it.each([0, 40])('uses the Telegram chrome fallback for an insufficient %ipx inset', (top) => {
-    expect(effectiveContentSafeTop(true, 24, top, 800)).toBe(TELEGRAM_TOP_CHROME_FALLBACK);
-  });
+  it.each([0, 40])(
+    'uses the Telegram chrome fallback for an insufficient %ipx inset',
+    (top) => {
+      expect(effectiveContentSafeTop(true, 24, top, 800)).toBe(TELEGRAM_TOP_CHROME_FALLBACK);
+    },
+  );
 
   it('rejects an implausible transient inset after returning from Telegram UI', () => {
     expect(effectiveContentSafeTop(true, 24, 900, 800)).toBe(TELEGRAM_TOP_CHROME_FALLBACK);
@@ -30,9 +33,12 @@ describe('effectiveStableViewportHeight', () => {
     expect(effectiveStableViewportHeight(720, 760)).toBe(720);
   });
 
-  it.each([0, 2000, Number.NaN])('falls back from an invalid or stale %s height', (height) => {
-    expect(effectiveStableViewportHeight(height, 760)).toBe(760);
-  });
+  it.each([0, 2000, Number.NaN])(
+    'falls back from an invalid or stale %s height',
+    (height) => {
+      expect(effectiveStableViewportHeight(height, 760)).toBe(760);
+    },
+  );
 });
 
 describe('content safe top consumers', () => {
