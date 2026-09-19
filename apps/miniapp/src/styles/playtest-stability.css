@@ -1,0 +1,86 @@
+/* Real-device playtest fixes. Keep this layer presentation-only. */
+.app-shell.focused {
+  height: var(--app-viewport-stable-height);
+  min-height: 0;
+  padding-top: calc(16px + var(--app-content-safe-top));
+  padding-bottom: calc(16px + var(--app-content-safe-bottom));
+  overflow: hidden;
+}
+
+.app-shell.focused .focused-flow {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 24px;
+}
+
+.app-shell.focused .focused-flow .brand {
+  top: 0;
+}
+
+.player-strip {
+  position: relative;
+}
+
+.player-strip .reaction {
+  z-index: 4;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: reaction-feedback 0.2s ease-out;
+}
+
+.game-screen .board-scene {
+  background:
+    linear-gradient(100deg, #00000028, transparent 20%, #ffffff12 48%, transparent 76%, #00000022),
+    repeating-linear-gradient(90deg, #ffffff08 0 1px, transparent 1px 15px),
+    linear-gradient(100deg, var(--wood-dark), var(--wood-mid), var(--wood-dark));
+}
+
+.board-theme-region.board-theme-default {
+  background:
+    linear-gradient(90deg, #00000018, transparent 20%, #ffffff14 50%, transparent 80%),
+    repeating-linear-gradient(4deg, #ffffff08 0 1px, transparent 1px 14px), var(--board-theme-field);
+}
+
+.board-theme-shared {
+  background:
+    linear-gradient(90deg, #00000020, transparent 22%, #ffffff10 50%, transparent 78%, #00000020),
+    repeating-linear-gradient(4deg, #ffffff06 0 1px, transparent 1px 14px), var(--board-field);
+}
+
+.point.destination .target {
+  box-shadow:
+    0 0 0 2px #101411aa,
+    0 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+@keyframes reaction-feedback {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -42%) scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (max-height: 700px) {
+  .app-shell.focused {
+    padding-top: calc(8px + var(--app-content-safe-top));
+    padding-bottom: calc(8px + var(--app-content-safe-bottom));
+  }
+
+  .app-shell.focused .focused-flow {
+    padding-block: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-strip .reaction {
+    animation: none;
+  }
+}

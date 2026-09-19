@@ -22,9 +22,11 @@ export interface BoardPointPresentation {
   readonly amount: number;
 }
 
+// The local player's relative head/home side is always rendered on the lower
+// half. This is presentation-only: the engine keeps one canonical orientation.
 const displayOrder = [
-  ...Array.from({ length: 12 }, (_, index) => 11 - index),
-  ...Array.from({ length: 12 }, (_, index) => 12 + index),
+  ...Array.from({ length: 12 }, (_, index) => 23 - index),
+  ...Array.from({ length: 12 }, (_, index) => index),
 ];
 
 /** Maps domain points into the viewer's fixed board geometry without changing game state. */
@@ -75,9 +77,15 @@ export function resolveBoardThemeRegionClasses(
   seat: PlayerId,
   cosmetics: ResolvedMatchCosmetics,
 ): Readonly<{ top: string; bottom: string }> {
+  const topAnchor = displayOrder[0] ?? 23;
+  const bottomAnchor = displayOrder[12] ?? 0;
   return {
-    top: resolveBoardThemePresentationClass(physicalPoint(game, seat, 0), seat, cosmetics),
-    bottom: resolveBoardThemePresentationClass(physicalPoint(game, seat, 12), seat, cosmetics),
+    top: resolveBoardThemePresentationClass(physicalPoint(game, seat, topAnchor), seat, cosmetics),
+    bottom: resolveBoardThemePresentationClass(
+      physicalPoint(game, seat, bottomAnchor),
+      seat,
+      cosmetics,
+    ),
   };
 }
 
@@ -132,6 +140,7 @@ export function BoardScene({
   const points = resolveBoardPointPresentation(game, board, seat);
   const diceClasses = resolveDicePresentationClasses(game, seat, cosmetics);
   const boardThemeRegions = resolveBoardThemeRegionClasses(game, seat, cosmetics);
+  const isDouble = game.diceRoll !== null && game.diceRoll[0] === game.diceRoll[1];
   return (
     <div
       className="board-scene"
@@ -204,11 +213,11 @@ export function BoardScene({
             <Die
               key={index}
               value={die}
-              used={draft.some((move) => move.die === die)}
+              used={!isDouble && draft.some((move) => move.die === die)}
               className={index === 0 ? diceClasses[0] : diceClasses[1]}
             />
           ))}
-          {game.diceRoll?.[0] === game.diceRoll?.[1] && (
+          {isDouble && (
             <span className="double-marks">
               {[0, 1, 2, 3].map((index) => (
                 <i className={draft.length > index ? 'used' : ''} key={index} />

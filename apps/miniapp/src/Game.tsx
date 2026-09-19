@@ -14,9 +14,12 @@ import { BottomSheet, ProgressBar } from './ui';
 import { CloseIcon, MoreIcon, ReactionIcon } from './ui/icons';
 import { BoardScene } from './game/BoardScene';
 import { resolveMatchCosmetics, resolveReactionVisual } from './game/cosmetics';
+import { resolveDraftPointIntent } from './game/turn-draft';
 import './styles/reaction-packs.css';
+import './styles/playtest-stability.css';
 
 const reactionOptions: readonly Reaction[] = ['WAVE', 'NICE', 'GG'];
+const REACTION_COOLDOWN_MS = 3000;
 
 export function Game({
   matchId,
@@ -44,6 +47,8 @@ export function Game({
     readonly accountId: string;
     readonly reaction: Reaction;
   } | null>(null);
+  const [localReaction, setLocalReaction] = useState<Reaction | null>(null);
+  const [reactionCooldownUntil, setReactionCooldownUntil] = useState(0);
   const [menu, setMenu] = useState(false);
   const [reactions, setReactions] = useState(false);
   const [confirmSurrender, setConfirmSurrender] = useState(false);
@@ -56,6 +61,7 @@ export function Game({
   const current = useRef<MatchSnapshot | null>(null);
   const transport = useRef<ReturnType<typeof connectMatch> | null>(null);
   const reactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localReactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const animations: ReturnType<typeof setTimeout>[] = [];
@@ -122,7 +128,9 @@ export function Game({
       clearInterval(interval);
       animations.forEach(clearTimeout);
       if (reactionTimer.current) clearTimeout(reactionTimer.current);
+      if (localReactionTimer.current) clearTimeout(localReactionTimer.current);
       reactionTimer.current = null;
+      localReactionTimer.current = null;
       c.close();
     };
   }, [matchId]);
@@ -161,6 +169,9 @@ export function Game({
     reaction?.accountId === s.players[opponent].accountId
       ? resolveReactionVisual(opponentReactionPack.id, reaction.reaction)
       : null;
+  const localReactionVisual = localReaction
+    ? resolveReactionVisual(localReactionPack.id, localReaction)
+    : null;
   const yourTurn =
     s.game.activePlayer === seat &&
     s.status === 'ACTIVE' &&
@@ -181,13 +192,32 @@ export function Game({
   );
 
   const select = (point: number | 'BAR') => {
-    const destination = next.find((m) => m.from === selected && m.to === point);
-    if (destination) {
-      setDraft([...draft, destination]);
+    const intent = resolveDraftPointIntent(next, selected, point);
+    if (intent.move) {
+      setDraft([...draft, intent.move]);
       setSelected(null);
       platform.haptic();
       feedbackSound('move');
-    } else if (next.some((m) => m.from === point)) setSelected(point);
+    } else if (intent.selected !== selected) {
+      setSelected(intent.selected);
+      platform.haptic();
+    }
+  };
+
+  const sendReaction = (reactionOption: Reaction) => {
+    if (!online || now < reactionCooldownUntil) return;
+    const sent = transport.current?.send('REACTION', { reaction: reactionOption }) ?? false;
+    if (!sent) return;
+
+    setLocalReaction(reactionOption);
+    setReactionCooldownUntil(Date.now() + REACTION_COOLDOWN_MS);
+    setReactions(false);
+    platform.haptic();
+    if (localReactionTimer.current) clearTimeout(localReactionTimer.current);
+    localReactionTimer.current = setTimeout(() => {
+      setLocalReaction(null);
+      localReactionTimer.current = null;
+    }, 2500);
   };
 
   return (
@@ -210,7 +240,7 @@ export function Game({
           </small>
         </div>
         {opponentReaction && (
-          <span className={`reaction ${opponentReactionPack.className}`}>
+          <span className={`reaction ${opponentReactionPack.className}`} aria-live="polite">
             {opponentReaction.content}
           </span>
         )}
@@ -255,6 +285,11 @@ export function Game({
             {s.players[seat].rating} · {online ? t.connected : t.reconnecting}
           </small>
         </div>
+        {localReactionVisual && (
+          <span className={`reaction ${localReactionPack.className}`} aria-live="polite">
+            {localReactionVisual.content}
+          </span>
+        )}
         <strong className={seconds < 10 ? 'urgent timer' : 'timer'}>
           {s.game.activePlayer === seat ? `${seconds}s` : ''}
         </strong>
@@ -287,12 +322,13 @@ export function Game({
             <>
               <button
                 onClick={() => {
-                  setDraft(draft.slice(0, -1));
-                  setSelected(null);
+                  if (selected !== null) setSelected(null);
+                  else setDraft(draft.slice(0, -1));
+                  platform.haptic();
                 }}
-                disabled={!draft.length}
+                disabled={selected === null && !draft.length}
               >
-                {t.undo}
+                {selected !== null ? t.cancel : t.undo}
               </button>
               {s.game.phase === 'WAITING_FOR_ROLL' ? (
                 <button
@@ -322,8 +358,8 @@ export function Game({
               {reactionOptions.map((reactionOption) => (
                 <button
                   key={reactionOption}
-                  disabled={!online}
-                  onClick={() => transport.current?.send('REACTION', { reaction: reactionOption })}
+                  disabled={!online || now < reactionCooldownUntil}
+                  onClick={() => sendReaction(reactionOption)}
                 >
                   {resolveReactionVisual(localReactionPack.id, reactionOption).content}
                 </button>
